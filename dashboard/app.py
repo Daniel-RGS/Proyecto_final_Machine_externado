@@ -1364,7 +1364,7 @@ def render_model_tab(snapshot):
 
     with left:
         st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-            if snapshot.shap_frame.empty:
+        if snapshot.shap_frame.empty:
             st.markdown('<div class="panel-title">Panel de impulsores del modelo</div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="panel-note">Última predicción interpretada usando la importancia de características del modelo en producción.</div>',
