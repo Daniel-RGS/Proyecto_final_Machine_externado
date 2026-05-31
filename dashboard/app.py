@@ -147,6 +147,14 @@ def inject_styles():
             color: var(--ink);
         }
 
+        /* Mission filters override: use dark text for readability against sidebar */
+        .mission-filters * {
+            color: #000 !important;
+        }
+        .mission-filters .stMarkdown, .mission-filters .stText, .mission-filters label {
+            color: #000 !important;
+        }
+
         h1, h2, h3 {
             font-family: "Rajdhani", sans-serif;
             color: var(--ink);
@@ -642,6 +650,7 @@ def render_dashboard_filters(dataset_df: pd.DataFrame, rss_df: pd.DataFrame, sna
     theme_options = ["Military", "Energy", "Diplomacy", "Risk"]
 
     with st.sidebar:
+        st.markdown('<div class="mission-filters">', unsafe_allow_html=True)
         st.markdown("## Filtros de misión")
         selected_range = st.date_input(
             "Rango de fechas",
@@ -700,6 +709,9 @@ def render_dashboard_filters(dataset_df: pd.DataFrame, rss_df: pd.DataFrame, sna
                 """,
                 unsafe_allow_html=True,
             )
+
+        # close mission filters wrapper
+        st.markdown('</div>', unsafe_allow_html=True)
 
     return {
         "date_window": (pd.Timestamp(start_date), pd.Timestamp(end_date)),
@@ -855,6 +867,7 @@ def plot_conflict_map(region_snapshot: pd.DataFrame) -> go.Figure:
         height=510,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
+        dragmode="pan",
     )
     return fig
 
@@ -1190,6 +1203,15 @@ def render_hero(snapshot, filters: dict):
         """
         for alert in snapshot.alerts
     )
+
+    # format executive values to avoid raw template rendering issues
+    esc_prob = f"{execu.get('escalation_probability', 0):.1%}"
+    forecast_peak_str = f"{execu.get('forecast_peak', 0):.1f}"
+    military_signal = str(execu.get('military_signal', 'N/D'))
+    energy_signal = str(execu.get('energy_signal', 'N/D'))
+    risk_signal = str(execu.get('risk_signal', 'N/D'))
+    forecast_peak_date = str(execu.get('forecast_peak_date', 'N/D'))
+
     st.markdown(
         f"""
         <div class="hero-grid">
@@ -1204,27 +1226,27 @@ def render_hero(snapshot, filters: dict):
                     <div class="hero-chip-grid">
                         <div class="hero-chip">
                             <div class="label">Probabilidad de escalada</div>
-                            <div class="value">{execu['escalation_probability']:.1%}</div>
+                            <div class="value">{esc_prob}</div>
                         </div>
                         <div class="hero-chip">
                             <div class="label">Pico pronosticado</div>
-                            <div class="value">{execu['forecast_peak']:.1f}</div>
+                            <div class="value">{forecast_peak_str}</div>
                         </div>
                         <div class="hero-chip">
                             <div class="label">Señal militar</div>
-                            <div class="value">{execu['military_signal']}</div>
+                            <div class="value">{military_signal}</div>
                         </div>
                         <div class="hero-chip">
                             <div class="label">Señal energética</div>
-                            <div class="value">{execu['energy_signal']}</div>
+                            <div class="value">{energy_signal}</div>
                         </div>
                         <div class="hero-chip">
                             <div class="label">Conteo temas de riesgo</div>
-                            <div class="value">{execu['risk_signal']}</div>
+                            <div class="value">{risk_signal}</div>
                         </div>
                         <div class="hero-chip">
                             <div class="label">Fecha pico pronosticada</div>
-                            <div class="value">{execu['forecast_peak_date']}</div>
+                            <div class="value">{forecast_peak_date}</div>
                         </div>
                     </div>
                 </div>
@@ -1238,7 +1260,11 @@ def render_hero(snapshot, filters: dict):
         """,
         unsafe_allow_html=True,
     )
-    st.plotly_chart(plot_conflict_map(filtered_region_snapshot), use_container_width=True)
+    st.plotly_chart(
+        plot_conflict_map(filtered_region_snapshot),
+        use_container_width=True,
+        config={"scrollZoom": False, "modeBarButtonsToRemove": ["zoom2d", "zoomIn2d", "zoomOut2d", "resetScale2d", "pan2d"]},
+    )
     st.markdown('<div class="panel-note">Mapa geográfico de atención regional: tamaño y color indican intensidad de riesgo estimada; pase el cursor para ver métricas recientes y titulares.</div>', unsafe_allow_html=True)
     st.markdown(
         """
