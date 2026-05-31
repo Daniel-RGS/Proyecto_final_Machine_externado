@@ -22,7 +22,7 @@ from intelligence_engine import (
 
 
 st.set_page_config(
-    page_title="Conflict Intelligence Platform",
+    page_title="Plataforma de Inteligencia de Conflicto",
     page_icon="I",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -697,7 +697,7 @@ def render_dashboard_filters(dataset_df: pd.DataFrame, rss_df: pd.DataFrame, sna
 
 def render_sidebar(status_payload: dict | None, snapshot):
     with st.sidebar:
-        st.markdown("## Command Stack")
+        st.markdown("## Panel de control")
         st.caption("Plataforma local de vigilancia geopolítica basada exclusivamente en las fuentes del proyecto.")
 
         threat_color = snapshot.executive["threat_color"]
@@ -705,7 +705,7 @@ def render_sidebar(status_payload: dict | None, snapshot):
             f"""
             <div class="status-chip">
                 <span class="alert-dot" style="background:{threat_color};"></span>
-                Threat State · {snapshot.executive['threat_level']}
+                Estado de amenaza · {snapshot.executive['threat_level']}
             </div>
             """,
             unsafe_allow_html=True,
@@ -713,14 +713,14 @@ def render_sidebar(status_payload: dict | None, snapshot):
 
         if status_payload:
             dataset_summary = status_payload.get("dataset_summary", {})
-            st.markdown("### Pipeline Status")
-            st.write(f"Last run: `{status_payload.get('finished_at', 'N/D')}`")
+            st.markdown("### Estado del pipeline")
+            st.write(f"Última ejecución: `{status_payload.get('finished_at', 'N/D')}`")
             st.write(
-                f"Coverage: `{dataset_summary.get('date_min', 'N/D')}` to `{dataset_summary.get('date_max', 'N/D')}`"
+                f"Cobertura: `{dataset_summary.get('date_min', 'N/D')}` a `{dataset_summary.get('date_max', 'N/D')}`"
             )
-            st.write(f"Rows: `{dataset_summary.get('rows', 'N/D')}`")
+            st.write(f"Filas: `{dataset_summary.get('rows', 'N/D')}`")
 
-            st.markdown("### Source Readiness")
+            st.markdown("### Disponibilidad de fuentes")
             for label, key in [
                 ("Wikimedia Pageviews", "wikimedia"),
                 ("Wikipedia Revisions", "wikipedia_revisions"),
@@ -742,19 +742,19 @@ def render_sidebar(status_payload: dict | None, snapshot):
                     unsafe_allow_html=True,
                 )
 
-        st.markdown("### Analytic Scope")
+        st.markdown("### Alcance analítico")
         st.markdown(
             """
             <div class="method-note">
-            Military, energy and regional signals are derived from the existing RSS corpus and the
-            monitored Wikipedia topics. No synthetic conflict events, no fake oil prices, no invented
-            regional series are introduced.
+            Las señales militares, energéticas y regionales se derivan del corpus RSS disponible y
+            de los temas monitorizados en Wikipedia. No se introducen eventos sintéticos, precios de
+            petróleo inventados ni series regionales fabricadas.
             </div>
             """,
             unsafe_allow_html=True,
         )
         st.info(
-            "If you want real oil-price correlations or market volatility, we need a valid time series source such as Brent/WTI or market data to be added to the project."
+            "Si quieres correlaciones reales con precios del petróleo o volatilidad de mercado, agrega una serie temporal válida (p. ej. Brent/WTI)."
         )
 
 
@@ -1181,35 +1181,35 @@ def render_hero(snapshot, filters: dict):
         <div class="hero-grid">
             <div class="hero-panel">
                 <div class="hero-panel-body">
-                    <div class="hero-badge">Conflict intelligence platform · iran / israel / us / energy / escalation</div>
-                    <div class="hero-title">Geopolitical escalation and conflict monitoring war room</div>
+                    <div class="hero-badge">Plataforma de inteligencia · Irán / Israel / EE. UU. / energía / escalada</div>
+                    <div class="hero-title">Sala de monitoreo y escalada geopolítica</div>
                     <div class="hero-copy">
-                        Live operational view of public attention, headline pressure, editorial churn, anomaly detection
-                        and machine-learning escalation risk centered on the Iran-Israel-United States conflict theatre.
+                        Vista operativa en tiempo real de atención pública, presión de titulares, churn editorial, detección de anomalías
+                        y riesgo de escalada estimado por modelos. Centrado en el teatro de conflicto Irán‑Israel‑EE. UU.
                     </div>
                     <div class="hero-chip-grid">
                         <div class="hero-chip">
-                            <div class="label">Escalation probability</div>
+                            <div class="label">Probabilidad de escalada</div>
                             <div class="value">{execu['escalation_probability']:.1%}</div>
                         </div>
                         <div class="hero-chip">
-                            <div class="label">Forecast peak</div>
+                            <div class="label">Pico pronosticado</div>
                             <div class="value">{execu['forecast_peak']:.1f}</div>
                         </div>
                         <div class="hero-chip">
-                            <div class="label">Military signal</div>
+                            <div class="label">Señal militar</div>
                             <div class="value">{execu['military_signal']}</div>
                         </div>
                         <div class="hero-chip">
-                            <div class="label">Energy signal</div>
+                            <div class="label">Señal energética</div>
                             <div class="value">{execu['energy_signal']}</div>
                         </div>
                         <div class="hero-chip">
-                            <div class="label">Risk theme count</div>
+                            <div class="label">Conteo temas de riesgo</div>
                             <div class="value">{execu['risk_signal']}</div>
                         </div>
                         <div class="hero-chip">
-                            <div class="label">Forecast peak date</div>
+                            <div class="label">Fecha pico pronosticada</div>
                             <div class="value">{execu['forecast_peak_date']}</div>
                         </div>
                     </div>
@@ -1217,9 +1217,9 @@ def render_hero(snapshot, filters: dict):
             </div>
             <div class="hero-panel">
                 <div class="hero-panel-body">
-                    <div class="panel-title">Conflict Theatre Map</div>
+                    <div class="panel-title">Mapa del teatro de conflicto</div>
                     <div class="panel-note">
-                        Middle East operational layer driven by observed RSS regional mentions and the monitored Wikipedia conflict topics.
+                        Capa operativa regional basada en menciones regionales observadas en RSS y temas monitorizados en Wikipedia.
                     </div>
         """,
         unsafe_allow_html=True,
@@ -1285,9 +1285,9 @@ def render_overview_tab(dataset_df: pd.DataFrame, snapshot, filters: dict):
 
     with right:
         st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Regional Heat and Risk Distribution</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Distribución regional de riesgo</div>', unsafe_allow_html=True)
         st.markdown(
-            '<div class="panel-note">Current hotspot ranking by regional headline mentions, recent topic attention and editorial activity.</div>',
+            '<div class="panel-note">Ranking de hotspots por menciones regionales en titulares, atención por tema y actividad editorial reciente.</div>',
             unsafe_allow_html=True,
         )
         st.plotly_chart(plot_region_risk_bars(filtered_region_snapshot), use_container_width=True)
@@ -1297,9 +1297,9 @@ def render_overview_tab(dataset_df: pd.DataFrame, snapshot, filters: dict):
     left, right = st.columns([1, 1])
     with left:
         st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Theme Activity Monitor</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Monitor de actividad por tema</div>', unsafe_allow_html=True)
         st.markdown(
-            '<div class="panel-note">Keyword-derived activity layers for military, energy, diplomacy and risk language from the RSS corpus.</div>',
+            '<div class="panel-note">Capas de actividad derivadas de palabras clave para military, energy, diplomacy y risk en el corpus RSS.</div>',
             unsafe_allow_html=True,
         )
         st.plotly_chart(plot_theme_activity(filtered_theme_daily, filters["themes"]), use_container_width=True)
@@ -1308,9 +1308,9 @@ def render_overview_tab(dataset_df: pd.DataFrame, snapshot, filters: dict):
 
     with right:
         st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Regime Shift Timeline</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Cronología de cambios de régimen</div>', unsafe_allow_html=True)
         st.markdown(
-            '<div class="panel-note">Unsupervised clustering of historical signal states to surface pattern shifts and changes in conflict posture.</div>',
+            '<div class="panel-note">Clustering no supervisado sobre estados de señales históricas para detectar cambios y patrones en la postura del conflicto.</div>',
             unsafe_allow_html=True,
         )
         st.plotly_chart(plot_regime_timeline(filtered_regime_frame), use_container_width=True)
@@ -1324,9 +1324,9 @@ def render_model_tab(snapshot):
 
     with left:
         st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Model Performance Envelope</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Desempeño de modelos</div>', unsafe_allow_html=True)
         st.markdown(
-            '<div class="panel-note">Comparative performance across candidate classifiers using the real integrated dataset and temporal holdout.</div>',
+            '<div class="panel-note">Comparación de desempeño entre clasificadores candidatos usando el dataset integrado y holdout temporal.</div>',
             unsafe_allow_html=True,
         )
         if snapshot.model_metrics.empty:
@@ -1345,9 +1345,9 @@ def render_model_tab(snapshot):
 
     with right:
         st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Feature Importance</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Importancia de características</div>', unsafe_allow_html=True)
         st.markdown(
-            '<div class="panel-note">Tree-based contribution ranking from the production escalation classifier.</div>',
+            '<div class="panel-note">Ranking de contribuciones (modelos tipo árbol) desde el clasificador de escalada en producción.</div>',
             unsafe_allow_html=True,
         )
         if snapshot.feature_importance_frame.empty:
@@ -1364,18 +1364,18 @@ def render_model_tab(snapshot):
 
     with left:
         st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        if snapshot.shap_frame.empty:
-            st.markdown('<div class="panel-title">Model Driver Board</div>', unsafe_allow_html=True)
+            if snapshot.shap_frame.empty:
+            st.markdown('<div class="panel-title">Panel de impulsores del modelo</div>', unsafe_allow_html=True)
             st.markdown(
-                '<div class="panel-note">Latest prediction interpreted with the production model feature-importance fallback.</div>',
+                '<div class="panel-note">Última predicción interpretada usando la importancia de características del modelo en producción.</div>',
                 unsafe_allow_html=True,
             )
             st.plotly_chart(plot_feature_importance(snapshot.feature_importance_frame), use_container_width=True)
             st.markdown('<div class="panel-note">Importancia de características derivada del mejor modelo; útil para entender qué señales impulsan la predicción.</div>', unsafe_allow_html=True)
         else:
-            st.markdown('<div class="panel-title">SHAP Driver Board</div>', unsafe_allow_html=True)
+            st.markdown('<div class="panel-title">Panel SHAP</div>', unsafe_allow_html=True)
             st.markdown(
-                '<div class="panel-note">Latest prediction explained through SHAP contributions so the platform does not behave as a black box.</div>',
+                '<div class="panel-note">Última predicción explicada mediante contribuciones SHAP para evitar que la plataforma sea una caja negra.</div>',
                 unsafe_allow_html=True,
             )
             st.plotly_chart(plot_shap_contributions(snapshot.shap_frame), use_container_width=True)
@@ -1384,9 +1384,9 @@ def render_model_tab(snapshot):
 
     with right:
         st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Latest Prediction Drivers</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Impulsores de la última predicción</div>', unsafe_allow_html=True)
         st.markdown(
-            '<div class="panel-note">Operational reading of the variables that most increased or decreased the current escalation estimate.</div>',
+            '<div class="panel-note">Lectura operativa de las variables que más aumentaron o disminuyeron la estimación actual de escalada.</div>',
             unsafe_allow_html=True,
         )
         if snapshot.top_drivers:
@@ -1406,9 +1406,9 @@ def render_event_tab(snapshot, filters: dict):
     left, right = st.columns([1.15, 0.85])
     with left:
         st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Recent Event Stream</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Flujo de eventos recientes</div>', unsafe_allow_html=True)
         st.markdown(
-            '<div class="panel-note">Latest conflict-relevant headlines from the existing RSS layer. This is the real textual event stream available today.</div>',
+            '<div class="panel-note">Últimos titulares relevantes al conflicto extraídos del layer RSS disponible. Este es el flujo textual real hoy disponible.</div>',
             unsafe_allow_html=True,
         )
         if filtered_events.empty:
