@@ -4,143 +4,480 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Presentación Proyecto OSINT ML1</title>
-    <!-- Reveal.js CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/dracula.min.css" id="theme">
-    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        .reveal h1, .reveal h2, .reveal h3 {
-            text-transform: none;
-            color: #ffcc00;
+        :root {
+            --primary: #38bdf8;
+            --secondary: #818cf8;
+            --accent: #f472b6;
+            --bg-color: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-bg: rgba(30, 41, 59, 0.5);
+            --glass-border: rgba(255, 255, 255, 0.1);
         }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(-45deg, #0f172a, #1e1b4b, #172554, #0f172a);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Particles Background */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.3;
+        }
+
+        /* Presentation Container */
+        .presentation {
+            position: relative;
+            width: 90vw;
+            max-width: 1200px;
+            height: 80vh;
+            z-index: 10;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 4rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px) scale(0.95);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+        }
+
+        .slide.prev {
+            transform: translateY(-20px) scale(0.95);
+        }
+
+        /* Typography */
+        h1, h2, h3 {
+            font-family: 'Outfit', sans-serif;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+
+        h1 {
+            font-size: 4.5rem;
+            background: linear-gradient(to right, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 3rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        h3 {
+            font-size: 2rem;
+            color: var(--text-main);
+            font-weight: 400;
+        }
+
+        p {
+            font-size: 1.25rem;
+            line-height: 1.7;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+
         .highlight {
-            color: #ff6666;
-            font-weight: bold;
+            color: var(--text-main);
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            background: rgba(56, 189, 248, 0.1);
+            border-radius: 6px;
+            border-left: 3px solid var(--primary);
         }
+
         .small-text {
-            font-size: 0.6em;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            opacity: 0.7;
         }
+
+        /* Layouts */
         .grid-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 3rem;
+            margin-top: 2rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+
+        ul, ol {
+            font-size: 1.25rem;
+            line-height: 1.7;
+            color: var(--text-muted);
+            margin-left: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.8rem;
+        }
+
+        strong {
+            color: var(--text-main);
+        }
+
+        /* Controls */
+        .controls {
+            position: absolute;
+            bottom: 2rem;
+            right: 3rem;
+            display: flex;
+            gap: 1rem;
+            z-index: 20;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--glass-border);
+        }
+
+        .progress-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 0 0 24px 24px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        /* Micro-animations for entering elements */
+        .slide.active h1, .slide.active h2, .slide.active h3 {
+            animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+        .slide.active p, .slide.active ul, .slide.active .grid-container {
+            animation: slideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            opacity: 0;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        a.dashboard-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px -10px rgba(56, 189, 248, 0.5);
+            margin-top: 1rem;
+            width: max-content;
+        }
+
+        a.dashboard-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px -10px rgba(56, 189, 248, 0.7);
         }
     </style>
 </head>
 <body>
-    <div class="reveal">
-        <div class="slides">
+    <div class="particles"></div>
+
+    <div class="presentation" id="presentation">
+        <!-- Slide 1 -->
+        <div class="slide active">
+            <h1>OSINT & Machine Learning</h1>
+            <h3>Prediciendo la Escalada en Medio Oriente</h3>
+            <p style="font-size: 1.5rem; color: var(--text-main);">Conflicto Irán–EE.UU.–Israel (2025-2026)</p>
+            <div style="flex-grow: 1;"></div>
+            <p class="small-text">Proyecto Final ML1 - Universidad Externado de Colombia</p>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="slide">
+            <h2>El Reto 🎯</h2>
+            <p>¿Podemos utilizar <strong>fuentes abiertas (OSINT)</strong> para anticipar aumentos de atención pública alrededor de un conflicto internacional?</p>
+            <div class="card" style="margin-top: 2rem;">
+                <h3 style="font-size: 1.5rem; color: var(--secondary);">Nuestra Hipótesis</h3>
+                <p class="highlight" style="margin: 0; font-size: 1.3rem;">La atención pública observable en fuentes abiertas puede funcionar como señal temprana de momentos de mayor tensión informativa.</p>
+            </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="slide">
+            <h2>Contexto 2025-2026 🗓️</h2>
+            <div class="card">
+                <ul>
+                    <li><strong style="color: var(--primary);">2025-2026:</strong> Seguimiento diario de atención pública en artículos asociados al conflicto regional.</li>
+                    <li><strong style="color: var(--secondary);">Unidad de análisis:</strong> Día calendario.</li>
+                    <li><strong style="color: var(--accent);">Variable objetivo:</strong> Alta presión pública al día siguiente.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 4 -->
+        <div class="slide">
+            <h2>Fuentes de Datos 📡</h2>
+            <div class="grid-container">
+                <div class="card">
+                    <h3 style="color: var(--primary); font-size: 1.5rem;">🎯 Fuentes integradas</h3>
+                    <p><strong>Wikimedia Pageviews + Wikipedia Revisions</strong></p>
+                    <p>Atención pública y actividad editorial diaria. Construimos un <em>Score de Presión Pública (0-100)</em>.</p>
+                    <p style="margin-top: 1rem;"><strong>RSS / Google News, BBC y Al Jazeera</strong></p>
+                    <p class="small-text">Titulares recientes reales como fuente textual sugerida por el enunciado.</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--secondary); font-size: 1.5rem;">📊 Fuentes opcionales</h3>
+                    <p><strong>GDELT DOC API</strong></p>
+                    <p class="small-text">Volumen y tono noticioso si la API responde sin bloqueo o demoras excesivas.</p>
+                    <p style="margin-top: 1rem;"><strong>ACLED / NASA FIRMS</strong></p>
+                    <p class="small-text">Eventos y señales térmicas si se obtienen credenciales. No se usan reemplazos sintéticos.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5 -->
+        <div class="slide">
+            <h2>Enfoque Machine Learning 🤖</h2>
+            <p>Formulamos el reto como un problema de <strong>Clasificación Supervisada</strong>.</p>
+            <div class="grid-container" style="gap: 1.5rem; grid-template-columns: 1fr 1fr 1fr;">
+                <div class="card" style="padding: 1.5rem;">
+                    <h3 style="font-size: 1.2rem;">Baseline</h3>
+                    <p style="font-size: 1rem;">Dummy Classifier</p>
+                </div>
+                <div class="card" style="padding: 1.5rem;">
+                    <h3 style="font-size: 1.2rem;">Regularización</h3>
+                    <p style="font-size: 1rem;">Logistic Regression y Ridge Classifier</p>
+                </div>
+                <div class="card" style="padding: 1.5rem;">
+                    <h3 style="font-size: 1.2rem;">No-lineales</h3>
+                    <p style="font-size: 1rem;">KNN Classifier & Random Forest</p>
+                </div>
+            </div>
+            <p class="highlight" style="margin-top: 2rem; display: inline-block;">Métrica principal: F1 en holdout temporal</p>
+        </div>
+
+        <!-- Slide 6 -->
+        <div class="slide">
+            <h2>Arquitectura del Sistema 🏗️</h2>
+            <ol>
+                <li><strong>Ingesta:</strong> Scripts en Python automatizados (API REST & RSS Parsing).</li>
+                <li><strong>Procesamiento:</strong> Pandas & Numpy para limpieza, suavizado y creación de variables rezagadas (Lags temporales).</li>
+                <li><strong>Modelado:</strong> Scikit-Learn pipelines, escalamiento estandarizado y holdout temporal.</li>
+                <li><strong>Despliegue:</strong> Aplicación interactiva construida con Streamlit.</li>
+            </ol>
+        </div>
+
+        <!-- Slide 7 -->
+        <div class="slide">
+            <h2>El Dashboard 🖥️</h2>
+            <p>Una herramienta interactiva diseñada para analistas de inteligencia estratégica:</p>
+            <div class="card">
+                <ul>
+                    <li>📈 <strong>Timeline Histórico:</strong> Visualización interactiva del score diario de presión pública.</li>
+                    <li>🌐 <strong>Fuentes:</strong> Comparación de pageviews, revisiones, titulares RSS y fuentes opcionales disponibles.</li>
+                    <li>🔮 <strong>Predicción:</strong> Clasificación del riesgo de alta presión pública al día siguiente.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 8 -->
+        <div class="slide">
+            <h2>Conclusiones & Limitaciones 📌</h2>
+            <div class="grid-container">
+                <div>
+                    <h3 style="color: var(--primary); font-size: 1.4rem;">Hallazgos</h3>
+                    <ul>
+                        <li>El modelo supera el baseline mayoritario en F1 dentro de una partición temporal.</li>
+                        <li>Las señales de atención pública permiten detectar días de presión informativa alta.</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: var(--accent); font-size: 1.4rem;">Limitaciones</h3>
+                    <ul>
+                        <li>El modelo no predice violencia física; predice atención pública alta.</li>
+                        <li>Ya se integran 3 fuentes reales; una cuarta fuente operacional como ACLED, FIRMS o UKMTO fortalecería la lectura de eventos en terreno.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9 -->
+        <div class="slide">
+            <h1 style="font-size: 5rem; margin-bottom: 1rem;">¡Gracias! 🚀</h1>
+            <p style="font-size: 1.5rem; margin-bottom: 3rem;">¿Preguntas o comentarios?</p>
             
-            <!-- Slide 1: Título -->
-            <section>
-                <h1>OSINT & Machine Learning</h1>
-                <h3>Prediciendo la Escalada en Medio Oriente</h3>
-                <p>Conflicto Irán–EE.UU.–Israel (2025-2026)</p>
-                <br>
-                <p class="small-text">Proyecto Final ML1 - Universidad Externado de Colombia</p>
-            </section>
+            <a href="http://localhost:8501" target="_blank" class="dashboard-link">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                Abrir Dashboard Interactivo
+            </a>
+        </div>
 
-            <!-- Slide 2: El Problema -->
-            <section>
-                <h2>El Reto 🎯</h2>
-                <p>¿Podemos utilizar <strong>fuentes abiertas (OSINT)</strong> para anticipar el nivel de violencia en un conflicto internacional?</p>
-                <div class="fragment">
-                    <p><strong>Nuestra Hipótesis:</strong></p>
-                    <p class="highlight">La cobertura mediática y el tono de las noticias internacionales actúan como un indicador temprano (leading indicator) de la escalada militar.</p>
-                </div>
-            </section>
-
-            <!-- Slide 3: Contexto del Conflicto -->
-            <section>
-                <h2>Contexto 2025-2026 🗓️</h2>
-                <ul>
-                    <li><strong>Junio 2025:</strong> <em>"La Guerra de los 12 Días"</em>. Intervención directa de EE.UU.</li>
-                    <li><strong>Febrero - Abril 2026:</strong> <em>"Operation Epic Fury"</em>. Cierre del espacio aéreo, bloqueos en Hormuz.</li>
-                    <li><strong>Mayo 2026 (Actual):</strong> Cese al fuego frágil y alta tensión.</li>
-                </ul>
-            </section>
-
-            <!-- Slide 4: Fuentes de Datos -->
-            <section>
-                <h2>Fuentes de Datos 📡</h2>
-                <div class="grid-container">
-                    <div>
-                        <h3>Target (Variable a Predecir)</h3>
-                        <p><strong>ACLED</strong></p>
-                        <p class="small-text">Eventos de conflicto armado, ataques aéreos y fatalidades. Construimos un <em>Score de Escalada (0-100)</em>.</p>
-                    </div>
-                    <div>
-                        <h3>Features (Predictores)</h3>
-                        <p><strong>GDELT DOC API</strong> <br><span class="small-text">Volumen de noticias globales y análisis de sentimiento/tono.</span></p>
-                        <p><strong>RSS Feeds</strong> <br><span class="small-text">BBC, Al Jazeera, Google News (Monitoreo en tiempo real).</span></p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Slide 5: Machine Learning -->
-            <section>
-                <h2>Enfoque de Machine Learning 🤖</h2>
-                <p>Problema de <strong>Regresión Supervisada</strong>.</p>
-                <ul>
-                    <li><strong>Baseline:</strong> Regresión Lineal</li>
-                    <li><strong>Regularización:</strong> Ridge (L2) y Lasso (L1)</li>
-                    <li><strong>No-lineales:</strong> KNN Regressor & Random Forest</li>
-                </ul>
-                <p class="fragment highlight">Objetivo: Minimizar el RMSE (Error Cuadrático Medio)</p>
-            </section>
-
-            <!-- Slide 6: Arquitectura y Pipeline -->
-            <section>
-                <h2>Arquitectura del Sistema 🏗️</h2>
-                <ol>
-                    <li><strong>Ingesta:</strong> Scripts en Python (API REST & RSS Parsing)</li>
-                    <li><strong>Procesamiento:</strong> Pandas & Numpy (Limpieza, Lags temporales)</li>
-                    <li><strong>Modelado:</strong> Scikit-Learn (Pipelines, Escalamiento, Cross-Validation)</li>
-                    <li><strong>Despliegue:</strong> Streamlit (Dashboard Interactivo Web)</li>
-                </ol>
-            </section>
-
-            <!-- Slide 7: El Dashboard -->
-            <section>
-                <h2>El Dashboard 🖥️</h2>
-                <p>Una herramienta diseñada para analistas de inteligencia:</p>
-                <ul>
-                    <li>Visualización histórica de la escalada (Timeline)</li>
-                    <li>Monitor en vivo de medios internacionales (Sentimiento)</li>
-                    <li>Simulador de escenarios ("What-if" analysis)</li>
-                </ul>
-            </section>
-
-            <!-- Slide 8: Conclusiones -->
-            <section>
-                <h2>Conclusiones & Limitaciones 📌</h2>
-                <ul>
-                    <li><strong>Poder Predictivo:</strong> Los picos mediáticos suelen preceder (o coincidir con) picos de violencia.</li>
-                    <li><strong>Limitaciones OSINT:</strong> Retrasos en reportes (reporting lag) de ACLED.</li>
-                    <li><strong>Sesgos:</strong> GDELT tiene un fuerte sesgo hacia medios occidentales (inglés).</li>
-                </ul>
-            </section>
-
-            <!-- Slide 9: Cierre -->
-            <section>
-                <h2>¡Gracias! 🚀</h2>
-                <p>Preguntas o comentarios.</p>
-                <br>
-                <a href="../dashboard/app.py" target="_blank" style="color: #42b9f5;">Ver Dashboard (App Streamlit)</a>
-            </section>
-
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
         </div>
     </div>
 
-    <!-- Reveal.js Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+    <div class="controls">
+        <button class="btn" id="prevBtn" onclick="changeSlide(-1)" disabled>&#8592;</button>
+        <button class="btn" id="nextBtn" onclick="changeSlide(1)">&#8594;</button>
+    </div>
+
     <script>
-        Reveal.initialize({
-            hash: true,
-            transition: 'slide', // none/fade/slide/convex/concave/zoom
-            dependencies: []
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const progressBar = document.getElementById('progressBar');
+
+        function updateProgress() {
+            const progress = ((currentSlide) / (totalSlides - 1)) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+
+        function changeSlide(direction) {
+            slides[currentSlide].classList.remove('active');
+            
+            if (direction === 1) {
+                slides[currentSlide].classList.add('prev');
+            } else {
+                slides[currentSlide].classList.remove('prev');
+            }
+
+            currentSlide += direction;
+
+            // Boundaries
+            if (currentSlide < 0) currentSlide = 0;
+            if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
+
+            // Remove prev class from new active slide if going backwards
+            slides[currentSlide].classList.remove('prev');
+            slides[currentSlide].classList.add('active');
+
+            // Update buttons
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.disabled = currentSlide === totalSlides - 1;
+
+            updateProgress();
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'Space') {
+                if (currentSlide < totalSlides - 1) changeSlide(1);
+            } else if (e.key === 'ArrowLeft') {
+                if (currentSlide > 0) changeSlide(-1);
+            }
         });
+
+        // Initialize progress
+        updateProgress();
     </script>
 </body>
 </html>

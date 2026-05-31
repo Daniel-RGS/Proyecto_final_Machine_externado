@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+__MACOSX/
+.pycache_tmp/
+.pycache/
+streamlit_*.log

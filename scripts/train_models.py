@@ -1,109 +1,157 @@
+import json
 import os
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression, Ridge
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, r2_score
+
+os.environ.setdefault("LOKY_MAX_CPU_COUNT", "1")
+
 import joblib
+import numpy as np
+import pandas as pd
+from sklearn.dummy import DummyClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression, RidgeClassifier
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+
+from project_paths import MODELS_DIR, PROCESSED_DIR, ensure_dir
+
+
+FEATURES = [
+    "volume_lag1",
+    "volume_7d_avg",
+    "avg_tone_lag1",
+    "avg_tone_7d_avg",
+    "negative_tone_lag1",
+    "negative_tone_7d_avg",
+    "media_pressure_score_lag1",
+    "media_pressure_score_7d_avg",
+    "wiki_pageviews_total_lag1",
+    "wiki_pageviews_total_7d_avg",
+    "wiki_revision_count_lag1",
+    "wiki_revision_count_7d_avg",
+    "rss_total_lag1",
+    "rss_total_7d_avg",
+    "firms_hotspots_count_lag1",
+    "firms_hotspots_count_7d_avg",
+    "day_of_week",
+    "month",
+    "days_since_start",
+]
+TARGET = "target_high_escalation_next_day"
+
+
+def _predict_scores(model, X):
+    if hasattr(model, "predict_proba"):
+        return model.predict_proba(X)[:, 1]
+    if hasattr(model, "decision_function"):
+        scores = model.decision_function(X)
+        min_score, max_score = scores.min(), scores.max()
+        if max_score == min_score:
+            return np.zeros_like(scores, dtype=float)
+        return (scores - min_score) / (max_score - min_score)
+    return model.predict(X)
+
+
+def _metrics(model, X_test, y_test):
+    pred = model.predict(X_test)
+    scores = _predict_scores(model, X_test)
+    result = {
+        "accuracy": accuracy_score(y_test, pred),
+        "precision": precision_score(y_test, pred, zero_division=0),
+        "recall": recall_score(y_test, pred, zero_division=0),
+        "f1": f1_score(y_test, pred, zero_division=0),
+    }
+    if y_test.nunique() > 1:
+        result["roc_auc"] = roc_auc_score(y_test, scores)
+    else:
+        result["roc_auc"] = None
+    return result
+
 
 def train_models():
-    print("Iniciando entrenamiento de modelos de Machine Learning...")
-    
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    data_path = os.path.join(base_dir, "data", "processed", "dataset_diario.csv")
-    
-    if not os.path.exists(data_path):
-        print(f"❌ No se encontró el dataset en {data_path}. Ejecute build_dataset.py primero.")
-        # Crearemos un dataset dummy rápido para que no falle el script de prueba
-        print("Generando datos dummy para el entrenamiento...")
-        dates = pd.date_range(start="2025-01-01", end="2026-05-30", freq='D')
-        df = pd.DataFrame({'date': dates})
-        df['volume'] = np.random.randint(100, 1000, size=len(dates))
-        df['avg_tone'] = np.random.uniform(-10, 5, size=len(dates))
-        df['score_lag1'] = np.random.uniform(0, 100, size=len(dates))
-        df['escalation_score'] = (df['volume'] / 100) - df['avg_tone'] + df['score_lag1'] * 0.5
-        df['escalation_score'] = 100 * (df['escalation_score'] - df['escalation_score'].min()) / (df['escalation_score'].max() - df['escalation_score'].min())
-    else:
-        df = pd.read_csv(data_path)
-    
-    # Seleccionar features y target
-    features = ['volume', 'avg_tone', 'score_lag1']
-    target = 'escalation_score'
-    
-    # Asegurar que las columnas existen
-    for col in features:
-        if col not in df.columns:
-            df[col] = 0
-            
-    X = df[features]
-    y = df[target]
-    
-    # Dividir datos (manteniendo el orden temporal idealmente, pero usamos random para simplificar el baseline)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    # Definir los 3 modelos (Requerimiento del PDF)
+    print("Entrenando modelos con dataset real procesado...")
+    data_path = PROCESSED_DIR / "dataset_diario.csv"
+
+    if not data_path.exists():
+        raise FileNotFoundError("No existe dataset_diario.csv. Ejecuta scripts/build_dataset.py primero.")
+
+    df = pd.read_csv(data_path).sort_values("date").reset_index(drop=True)
+    missing = [col for col in FEATURES + [TARGET] if col not in df.columns]
+    if missing:
+        raise ValueError(f"Faltan columnas requeridas para entrenar: {missing}")
+
+    X = df[FEATURES]
+    y = df[TARGET].astype(int)
+    if y.nunique() < 2:
+        raise ValueError("El target tiene una sola clase. Revisa la construccion del dataset.")
+
+    split_idx = int(len(df) * 0.8)
+    X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
+    y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
+
     models = {
-        "Regresión Lineal (Baseline)": LinearRegression(),
-        "Ridge (Regularización)": Ridge(alpha=1.0),
-        "Random Forest (No Lineal)": RandomForestRegressor(n_estimators=100, random_state=42)
+        "Dummy majority baseline": DummyClassifier(strategy="most_frequent"),
+        "Logistic Regression": Pipeline(
+            [("scaler", StandardScaler()), ("model", LogisticRegression(max_iter=1000, class_weight="balanced"))]
+        ),
+        "Ridge Classifier": Pipeline(
+            [("scaler", StandardScaler()), ("model", RidgeClassifier(class_weight="balanced"))]
+        ),
+        "KNN Classifier": Pipeline(
+            [("scaler", StandardScaler()), ("model", KNeighborsClassifier(n_neighbors=7))]
+        ),
+        "Random Forest": RandomForestClassifier(
+            n_estimators=300,
+            min_samples_leaf=5,
+            random_state=42,
+            class_weight="balanced",
+            n_jobs=1,
+        ),
     }
-    
+
     results = {}
+    best_name = None
     best_model = None
-    best_rmse = float('inf')
-    best_name = ""
-    
-    print("\n--- Resultados de los Modelos ---")
+    best_f1 = -1.0
+
+    print("\nResultados holdout temporal")
     for name, model in models.items():
-        # Entrenamiento
         model.fit(X_train, y_train)
-        
-        # Predicción
-        y_pred = model.predict(X_test)
-        
-        # Evaluación
-        rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-        r2 = r2_score(y_test, y_pred)
-        
-        results[name] = {"RMSE": rmse, "R2": r2}
-        print(f"{name}:")
-        print(f"  RMSE: {rmse:.2f}")
-        print(f"  R2: {r2:.2f}")
-        
-        # Guardar el mejor modelo
-        if rmse < best_rmse:
-            best_rmse = rmse
-            best_model = model
+        model_metrics = _metrics(model, X_test, y_test)
+        results[name] = model_metrics
+        print(
+            f"{name}: f1={model_metrics['f1']:.3f}, "
+            f"precision={model_metrics['precision']:.3f}, recall={model_metrics['recall']:.3f}, "
+            f"accuracy={model_metrics['accuracy']:.3f}"
+        )
+        if name != "Dummy majority baseline" and model_metrics["f1"] > best_f1:
+            best_f1 = model_metrics["f1"]
             best_name = name
-            
-    print(f"\n✅ Mejor modelo: {best_name} (RMSE: {best_rmse:.2f})")
-    
-    # Guardar el modelo en disco
-    models_dir = os.path.join(base_dir, "models")
-    os.makedirs(models_dir, exist_ok=True)
-    model_path = os.path.join(models_dir, "best_escalation_model.pkl")
-    
-    joblib.dump(best_model, model_path)
-    print(f"Modelo guardado exitosamente en {model_path}")
-    
-    # Crear un artefacto Markdown con los gráficos usando Mermaid
-    artifact_path = os.path.join(base_dir, "..", ".gemini", "antigravity-ide", "brain", "8fbd2bb0-92c6-4d65-953c-653e3554a715", "experiment_results.md")
-    if os.path.exists(os.path.dirname(artifact_path)):
-        mermaid_chart = "```mermaid\nxychart-beta\n    title \"Comparación de RMSE por Modelo (Menor es mejor)\"\n    x-axis ["
-        mermaid_chart += ", ".join([f'"{name}"' for name in results.keys()])
-        mermaid_chart += "]\n    y-axis \"RMSE\"\n    bar ["
-        mermaid_chart += ", ".join([f"{res['RMSE']:.2f}" for res in results.values()])
-        mermaid_chart += "]\n```"
-        
-        md_content = f"# Resultados del Entrenamiento de Modelos\n\nSe probaron varios modelos para predecir el Score de Escalada:\n\n{mermaid_chart}\n\n"
-        md_content += "## Tabla de Métricas\n\n| Modelo | RMSE | R2 |\n|---|---|---|\n"
-        for name, res in results.items():
-            md_content += f"| {name} | {res['RMSE']:.2f} | {res['R2']:.2f} |\n"
-        md_content += f"\n**Decisión:** El modelo ganador es **{best_name}** por tener el menor error (RMSE). Este modelo se guardó en `{model_path}` y será el que usará el Dashboard.\n"
-        
-        with open(artifact_path, "w") as f:
-            f.write(md_content)
+            best_model = model
+
+    models_dir = ensure_dir(MODELS_DIR)
+    model_path = models_dir / "best_escalation_model.pkl"
+    metrics_path = models_dir / "model_metrics.json"
+
+    metadata = {
+        "best_model": best_name,
+        "selection_metric": "f1",
+        "train_rows": int(len(X_train)),
+        "test_rows": int(len(X_test)),
+        "features": FEATURES,
+        "target": TARGET,
+        "results": results,
+    }
+    joblib.dump({"model": best_model, "features": FEATURES, "metadata": metadata}, model_path)
+    with open(metrics_path, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=2)
+
+    print(f"\nMejor modelo: {best_name} (F1={best_f1:.3f})")
+    print(f"Modelo guardado en {model_path}")
+    print(f"Metricas guardadas en {metrics_path}")
+    return metadata
+
 
 if __name__ == "__main__":
     train_models()

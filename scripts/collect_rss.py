@@ -1,81 +1,103 @@
-import feedparser
-import pandas as pd
-import os
 from datetime import datetime
 from email.utils import parsedate_to_datetime
 
+import feedparser
+import pandas as pd
+
+from project_paths import RAW_DIR, ensure_dir
+
+
 RSS_FEEDS = {
     "BBC_World": "https://feeds.bbci.co.uk/news/world/rss.xml",
-    "Al_Jazeera": "https://www.aljazeera.com/xml/rss/all.xml"
+    "Al_Jazeera": "https://www.aljazeera.com/xml/rss/all.xml",
+    "Google_News": (
+        "https://news.google.com/rss/search?"
+        "q=(Iran%20OR%20Tehran)%20(Israel%20OR%20Gaza%20OR%20Lebanon%20OR%20missile%20OR%20strike)"
+        "&hl=en-US&gl=US&ceid=US:en"
+    ),
 }
 
-KEYWORDS = ["iran", "israel", "tehran", "tel aviv", "khamenei", "gaza", "lebanon", "middle east", "strike", "missile"]
+KEYWORDS = [
+    "iran",
+    "israel",
+    "tehran",
+    "tel aviv",
+    "khamenei",
+    "gaza",
+    "lebanon",
+    "middle east",
+    "strike",
+    "missile",
+]
+
 
 def is_relevant(title, description):
     text = (str(title) + " " + str(description)).lower()
-    return any(kw in text for kw in KEYWORDS)
+    return any(keyword in text for keyword in KEYWORDS)
+
 
 def collect_rss_data():
     """
-    Recopila titulares recientes de feeds RSS.
-    Nota: Los feeds RSS generalmente solo contienen noticias de las últimas horas/días.
-    Para investigación histórica se usaría GDELT o BigQuery, pero esto sirve para el dashboard en vivo
-    y para demostrar la capacidad técnica pedida en el proyecto.
+    Recopila titulares recientes de feeds RSS para alimentar el dashboard y la fuente textual.
     """
     print("Recolectando feeds RSS...")
     all_entries = []
-    
+
     for source, url in RSS_FEEDS.items():
         try:
             feed = feedparser.parse(url)
             for entry in feed.entries:
-                if is_relevant(entry.title, entry.get('description', '')):
-                    try:
-                        dt = parsedate_to_datetime(entry.published)
-                        date_str = dt.strftime("%Y-%m-%d")
-                    except:
-                        date_str = datetime.now().strftime("%Y-%m-%d")
-                        
-                    all_entries.append({
+                if not is_relevant(entry.title, entry.get("description", "")):
+                    continue
+                try:
+                    published_at = parsedate_to_datetime(entry.published)
+                    date_str = published_at.strftime("%Y-%m-%d")
+                except Exception:
+                    date_str = datetime.now().strftime("%Y-%m-%d")
+
+                all_entries.append(
+                    {
                         "source": source,
                         "date": date_str,
                         "title": entry.title,
-                        "link": entry.link
-                    })
-        except Exception as e:
-            print(f"Error procesando feed {source}: {e}")
-            
+                        "description": entry.get("description", ""),
+                        "published": entry.get("published", ""),
+                        "link": entry.link,
+                    }
+                )
+        except Exception as exc:
+            print(f"Error procesando feed {source}: {exc}")
+
     df = pd.DataFrame(all_entries)
-    
-    if not df.empty:
-        output_dir = os.path.join(os.path.dirname(__dirname__), "data", "raw", "rss")
-        os.makedirs(output_dir, exist_ok=True)
-        filepath = os.path.join(output_dir, "rss_latest.csv")
-        
-        # Si ya existe, combinamos y quitamos duplicados
-        if os.path.exists(filepath):
-            df_existing = pd.read_csv(filepath)
-            df = pd.concat([df_existing, df]).drop_duplicates(subset=['link'])
-            
-        df.to_csv(filepath, index=False)
-        print(f"✅ {len(df)} titulares relevantes extraídos y guardados en {filepath}")
-        
-        # Para features de modelado: contar menciones por día y por fuente
-        df_grouped = df.groupby(['date', 'source']).size().unstack(fill_value=0).reset_index()
-        # Renombrar columnas
-        col_names = {'date': 'date'}
-        for src in RSS_FEEDS.keys():
-            if src in df_grouped.columns:
-                col_names[src] = f"rss_{src.lower()}_count"
-        df_grouped = df_grouped.rename(columns=col_names)
-        
-        # Guardar para el modelo
-        feat_path = os.path.join(output_dir, "rss_daily_features.csv")
-        df_grouped.to_csv(feat_path, index=False)
-        print(f"✅ Features diarias de RSS actualizadas en {feat_path}")
-        
-    else:
+    if df.empty:
         print("No se encontraron noticias relevantes en los feeds RSS actuales.")
+        return df
+
+    output_dir = ensure_dir(RAW_DIR / "rss")
+    latest_path = output_dir / "rss_latest.csv"
+    if latest_path.exists():
+        existing_df = pd.read_csv(latest_path)
+        df = pd.concat([existing_df, df], ignore_index=True).drop_duplicates(subset=["link"])
+
+    df = df.sort_values(["date", "source", "published", "title"]).reset_index(drop=True)
+    df.to_csv(latest_path, index=False)
+    print(f"[OK] {len(df)} titulares relevantes guardados en {latest_path}")
+
+    daily_df = df.groupby(["date", "source"]).size().unstack(fill_value=0).reset_index()
+    renamed_columns = {"date": "date"}
+    for source in RSS_FEEDS:
+        if source in daily_df.columns:
+            renamed_columns[source] = f"rss_{source.lower()}_count"
+    daily_df = daily_df.rename(columns=renamed_columns)
+
+    count_columns = [column for column in daily_df.columns if column != "date"]
+    daily_df["rss_total"] = daily_df[count_columns].sum(axis=1)
+
+    features_path = output_dir / "rss_daily_features.csv"
+    daily_df.to_csv(features_path, index=False)
+    print(f"[OK] Features diarias de RSS actualizadas en {features_path}")
+    return df
+
 
 if __name__ == "__main__":
     collect_rss_data()

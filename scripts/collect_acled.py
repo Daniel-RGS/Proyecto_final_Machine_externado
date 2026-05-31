@@ -1,8 +1,9 @@
 import os
-import requests
-import pandas as pd
 from datetime import datetime
+import pandas as pd
+import requests
 from dotenv import load_dotenv
+from project_paths import DEFAULT_START_DATE, RAW_DIR, default_end_date, ensure_dir
 
 # Cargar variables de entorno
 load_dotenv()
@@ -12,10 +13,11 @@ ACLED_URL = "https://api.acleddata.com/acled/read"
 EMAIL = os.getenv("ACLED_EMAIL")
 KEY = os.getenv("ACLED_KEY")
 
-def collect_acled_data(start_date="2025-01-01", end_date="2026-05-30"):
+def collect_acled_data(start_date=DEFAULT_START_DATE, end_date=None):
     """
     Descarga eventos de conflicto de ACLED para Irán, Israel y EE.UU. en Medio Oriente.
     """
+    end_date = end_date or default_end_date()
     if not EMAIL or not KEY:
         print("⚠️ Advertencia: No se encontraron las credenciales de ACLED (ACLED_EMAIL, ACLED_KEY) en .env")
         print("Guarde sus credenciales en un archivo .env en la raíz del proyecto para descargar datos reales.")
@@ -45,10 +47,9 @@ def collect_acled_data(start_date="2025-01-01", end_date="2026-05-30"):
         df = pd.DataFrame(data)
         
         # Guardar datos raw
-        output_dir = os.path.join(os.path.dirname(__dirname__), "data", "raw", "acled")
-        os.makedirs(output_dir, exist_ok=True)
+        output_dir = ensure_dir(RAW_DIR / "acled")
         filename = f"acled_{start_date}_{end_date}.csv"
-        filepath = os.path.join(output_dir, filename)
+        filepath = output_dir / filename
         
         df.to_csv(filepath, index=False)
         print(f"✅ Descargados {len(df)} eventos. Guardados en {filepath}")

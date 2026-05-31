@@ -1,11 +1,27 @@
-import os
-import requests
-import pandas as pd
 from datetime import datetime, timedelta
 import time
+
+import pandas as pd
+import requests
 from tqdm import tqdm
 
+from project_paths import DEFAULT_START_DATE, RAW_DIR, default_end_date, ensure_dir
+
 GDELT_DOC_API = "https://api.gdeltproject.org/api/v2/doc/doc"
+HEADERS = {"User-Agent": "osint-iran-conflict-ml1/1.0"}
+
+
+def _get_gdelt_json(params, retries=4):
+    for attempt in range(retries):
+        response = requests.get(GDELT_DOC_API, params=params, headers=HEADERS, timeout=60)
+        if response.status_code == 429 and attempt < retries - 1:
+            wait_seconds = 6 * (attempt + 1)
+            print(f"GDELT rate limit; esperando {wait_seconds}s...")
+            time.sleep(wait_seconds)
+            continue
+        response.raise_for_status()
+        time.sleep(6)
+        return response.json()
 
 def fetch_gdelt_volume(query, start_date, end_date):
     """
@@ -20,9 +36,7 @@ def fetch_gdelt_volume(query, start_date, end_date):
     }
     
     try:
-        response = requests.get(GDELT_DOC_API, params=params)
-        response.raise_for_status()
-        data = response.json().get('timeline', [])
+        data = _get_gdelt_json(params).get('timeline', [])
         
         if not data:
             return pd.DataFrame()
@@ -59,9 +73,7 @@ def fetch_gdelt_tone(query, start_date, end_date):
     }
     
     try:
-        response = requests.get(GDELT_DOC_API, params=params)
-        response.raise_for_status()
-        data = response.json().get('timeline', [])
+        data = _get_gdelt_json(params).get('timeline', [])
         
         if not data:
             return pd.DataFrame()
@@ -84,12 +96,13 @@ def fetch_gdelt_tone(query, start_date, end_date):
         print(f"Error consultando GDELT Tone: {e}")
         return pd.DataFrame()
 
-def collect_gdelt_data(start_date_str="2025-01-01", end_date_str="2026-05-30"):
+def collect_gdelt_data(start_date_str=DEFAULT_START_DATE, end_date_str=None):
     """
     Itera mes a mes (para evitar timeouts) recopilando volumen y tono.
     """
+    end_date_str = end_date_str or default_end_date()
     print(f"Descargando datos de GDELT desde {start_date_str} hasta {end_date_str}...")
-    query = '"Iran" AND "Israel"'
+    query = '("Iran" OR "Tehran") AND ("Israel" OR "Tel Aviv" OR "Gaza" OR "Lebanon" OR "missile" OR "strike")'
     
     start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
     end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
@@ -114,7 +127,7 @@ def collect_gdelt_data(start_date_str="2025-01-01", end_date_str="2026-05-30"):
             
         pbar.update((next_date - current).days)
         current = next_date
-        time.sleep(1) # Respetar rate limits
+        time.sleep(1)
         
     pbar.close()
     
@@ -126,9 +139,8 @@ def collect_gdelt_data(start_date_str="2025-01-01", end_date_str="2026-05-30"):
         df_final = pd.merge(df_vol, df_tone, on='date', how='outer')
         
         # Guardar
-        output_dir = os.path.join(os.path.dirname(__dirname__), "data", "raw", "gdelt")
-        os.makedirs(output_dir, exist_ok=True)
-        filepath = os.path.join(output_dir, "gdelt_daily.csv")
+        output_dir = ensure_dir(RAW_DIR / "gdelt")
+        filepath = output_dir / "gdelt_daily.csv"
         df_final.to_csv(filepath, index=False)
         print(f"✅ Datos de GDELT guardados en {filepath}")
         return df_final
