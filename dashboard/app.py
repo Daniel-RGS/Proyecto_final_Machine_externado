@@ -642,9 +642,9 @@ def render_dashboard_filters(dataset_df: pd.DataFrame, rss_df: pd.DataFrame, sna
     theme_options = ["Military", "Energy", "Diplomacy", "Risk"]
 
     with st.sidebar:
-        st.markdown("## Mission Filters")
+        st.markdown("## Filtros de misión")
         selected_range = st.date_input(
-            "Date window",
+            "Rango de fechas",
             value=(min_date, max_date),
             min_value=min_date,
             max_value=max_date,
@@ -654,9 +654,38 @@ def render_dashboard_filters(dataset_df: pd.DataFrame, rss_df: pd.DataFrame, sna
         else:
             start_date, end_date = min_date, max_date
 
-        selected_sources = st.multiselect("News sources", source_options, default=source_options)
-        selected_regions = st.multiselect("Regions", region_options, default=region_options)
-        selected_themes = st.multiselect("Categories", theme_options, default=theme_options)
+        # UX helpers: botones para seleccionar / limpiar todo
+        col_a, col_b = st.columns([1, 1])
+        if col_a.button("Seleccionar todo"):
+            selected_sources = source_options.copy()
+            selected_regions = region_options.copy()
+            selected_themes = theme_options.copy()
+        elif col_b.button("Borrar selección"):
+            selected_sources = []
+            selected_regions = []
+            selected_themes = []
+        else:
+            selected_sources = st.multiselect("Fuentes", source_options, default=source_options) if source_options else []
+            selected_regions = st.multiselect("Regiones", region_options, default=region_options) if region_options else []
+            selected_themes = st.multiselect("Categorías", theme_options, default=theme_options)
+
+        # Mensajes cuando no hay opciones
+        if not source_options:
+            st.warning("No hay fuentes de noticias disponibles en data/raw/rss/rss_latest.csv")
+        if not region_options:
+            st.info("No hay regiones detectadas aún en el snapshot; revisa la ingesta de datos.")
+
+        # Expander con metodología y fuentes resumidas
+        with st.expander("Metodología y fuentes (resumen)", expanded=False):
+            st.markdown(
+                """
+                - Unidad de análisis: día-región (ventana diaria agregada por país/región).
+                - Fuentes activas detectadas en el proyecto: RSS (titulares), Wikimedia pageviews, Wikipedia revisions.
+                - Modelado: clasificación/regresión sobre un `media_pressure_score` construido desde el corpus RSS y señales complementarias.
+                - Estado del pipeline: revisa `data/processed/pipeline_status.json` para detalles de ingestión y cobertura.
+                """,
+                unsafe_allow_html=True,
+            )
 
     return {
         "date_window": (pd.Timestamp(start_date), pd.Timestamp(end_date)),
@@ -1092,24 +1121,24 @@ def render_command_ribbon(snapshot, status_payload):
         f"""
         <div class="command-ribbon">
             <div class="command-tile">
-                <div class="command-kicker">Threat Condition</div>
+                <div class="command-kicker">Condición de amenaza</div>
                 <div class="command-value" style="color:{execu['threat_color']};">{execu['threat_level'].upper()}</div>
-                <div class="command-copy">Escalation probability {execu['escalation_probability']:.1%} · model confidence {execu['model_confidence']:.1%}</div>
+                <div class="command-copy">Probabilidad de escalada {execu['escalation_probability']:.1%} · confianza del modelo {execu['model_confidence']:.1%}</div>
             </div>
             <div class="command-tile">
-                <div class="command-kicker">Conflict Intensity</div>
+                <div class="command-kicker">Intensidad del conflicto</div>
                 <div class="command-value">{execu['conflict_intensity']:.1f}</div>
-                <div class="command-copy">Observed pressure score against escalation threshold {execu['score_threshold']:.1f}</div>
+                <div class="command-copy">Puntaje observado vs umbral de escalada {execu['score_threshold']:.1f}</div>
             </div>
             <div class="command-tile">
-                <div class="command-kicker">Regional Hotspot</div>
+                <div class="command-kicker">Punto caliente regional</div>
                 <div class="command-value">{execu['regional_hotspot']}</div>
-                <div class="command-copy">Regional risk proxy {execu['regional_risk_proxy']:.2f}</div>
+                <div class="command-copy">Proxy de riesgo regional {execu['regional_risk_proxy']:.2f}</div>
             </div>
             <div class="command-tile">
-                <div class="command-kicker">Pipeline Heartbeat</div>
+                <div class="command-kicker">Latido del pipeline</div>
                 <div class="command-value">{weekly_text}</div>
-                <div class="command-copy">Weekly trend shift · last refresh {last_run}</div>
+                <div class="command-copy">Cambio semanal · última actualización {last_run}</div>
             </div>
         </div>
         """,
@@ -1121,7 +1150,7 @@ def render_hero(snapshot, filters: dict):
     execu = snapshot.executive
     filtered_region_snapshot = snapshot.region_snapshot[
         snapshot.region_snapshot["region"].isin(filters["regions"])
-    ] if filters["regions"] else snapshot.region_snapshot.iloc[0:0]
+    ] if filters["regions"] else snapshot.region_snapshot
     radar_html = """
         <div class="radar-shell">
             <div class="radar-sweep"></div>
@@ -1196,15 +1225,16 @@ def render_hero(snapshot, filters: dict):
         unsafe_allow_html=True,
     )
     st.plotly_chart(plot_conflict_map(filtered_region_snapshot), use_container_width=True)
+    st.markdown('<div class="panel-note">Mapa geográfico de atención regional: tamaño y color indican intensidad de riesgo estimada; pase el cursor para ver métricas recientes y titulares.</div>', unsafe_allow_html=True)
     st.markdown(
         """
                 </div>
             </div>
             <div class="hero-panel">
                 <div class="hero-panel-body">
-                    <div class="panel-title">Operational Alert Board</div>
+                    <div class="panel-title">Panel de Alertas Operativas</div>
                     <div class="panel-note">
-                        Mission control digest for escalation outlook, anomaly flags, regional hotspots and energy corridor stress.
+                        Resumen operativo: perspectiva de escalada, banderas de anomalía, hotspots regionales y estrés en corredores energéticos.
                     </div>
         """,
         unsafe_allow_html=True,
@@ -1225,12 +1255,12 @@ def render_hero(snapshot, filters: dict):
 def render_exec_metrics(snapshot):
     execu = snapshot.executive
     col1, col2, col3, col4, col5, col6 = st.columns(6)
-    col1.metric("Threat Level", execu["threat_level"])
-    col2.metric("Global Risk Proxy", f"{execu['global_risk_proxy']:.1f}")
-    col3.metric("Weekly Trend", f"{execu['weekly_trend']:+.1f}")
-    col4.metric("Monthly Trend", f"{execu['monthly_trend']:+.1f}")
-    col5.metric("Model Confidence", f"{execu['model_confidence']:.1%}")
-    col6.metric("Anomaly Score", f"{execu['anomaly_score']:.3f}")
+    col1.metric("Nivel de amenaza", execu["threat_level"])
+    col2.metric("Proxy de riesgo global", f"{execu['global_risk_proxy']:.1f}")
+    col3.metric("Tendencia semanal", f"{execu['weekly_trend']:+.1f}")
+    col4.metric("Tendencia mensual", f"{execu['monthly_trend']:+.1f}")
+    col5.metric("Confianza del modelo", f"{execu['model_confidence']:.1%}")
+    col6.metric("Score de anomalía", f"{execu['anomaly_score']:.3f}")
 
 
 def render_overview_tab(dataset_df: pd.DataFrame, snapshot, filters: dict):
@@ -1239,17 +1269,18 @@ def render_overview_tab(dataset_df: pd.DataFrame, snapshot, filters: dict):
     filtered_regime_frame = apply_date_window(snapshot.regime_frame, filters["date_window"])
     filtered_region_snapshot = snapshot.region_snapshot[
         snapshot.region_snapshot["region"].isin(filters["regions"])
-    ] if filters["regions"] else snapshot.region_snapshot.iloc[0:0]
+    ] if filters["regions"] else snapshot.region_snapshot
 
     left, right = st.columns([1.25, 1])
     with left:
         st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Observed Escalation Pressure and Short-Horizon Forecast</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Presión de escalada observada y forecast a corto plazo</div>', unsafe_allow_html=True)
         st.markdown(
-            '<div class="panel-note">Observed score, anomaly markers and 10-day autoregressive forecast with confidence band built from historical residuals.</div>',
+            '<div class="panel-note">Puntaje observado, marcas de anomalía y forecast autoregresivo a 10 días con banda de confianza construida a partir de residuos históricos.</div>',
             unsafe_allow_html=True,
         )
         st.plotly_chart(plot_pressure_and_forecast(filtered_dataset, snapshot), use_container_width=True)
+        st.markdown('<div class="panel-note">Score observado de presión mediática con marcadores de anomalía y forecast a 10 días (bandas de confianza). El forecast usa un modelo autoregresivo entrenado sobre el historial del `media_pressure_score`.</div>', unsafe_allow_html=True)
         st.markdown("</div></div>", unsafe_allow_html=True)
 
     with right:
@@ -1260,6 +1291,7 @@ def render_overview_tab(dataset_df: pd.DataFrame, snapshot, filters: dict):
             unsafe_allow_html=True,
         )
         st.plotly_chart(plot_region_risk_bars(filtered_region_snapshot), use_container_width=True)
+        st.markdown('<div class="panel-note">Ranking regional por menciones y señales editoriales; útil para identificar hotspots mediáticos en el periodo seleccionado.</div>', unsafe_allow_html=True)
         st.markdown("</div></div>", unsafe_allow_html=True)
 
     left, right = st.columns([1, 1])
@@ -1271,6 +1303,7 @@ def render_overview_tab(dataset_df: pd.DataFrame, snapshot, filters: dict):
             unsafe_allow_html=True,
         )
         st.plotly_chart(plot_theme_activity(filtered_theme_daily, filters["themes"]), use_container_width=True)
+        st.markdown('<div class="panel-note">Actividad por tema (military, energy, diplomacy, risk) derivada de conteos de keywords en el corpus RSS. No es una medida perfecta de intención militar.</div>', unsafe_allow_html=True)
         st.markdown("</div></div>", unsafe_allow_html=True)
 
     with right:
@@ -1281,6 +1314,7 @@ def render_overview_tab(dataset_df: pd.DataFrame, snapshot, filters: dict):
             unsafe_allow_html=True,
         )
         st.plotly_chart(plot_regime_timeline(filtered_regime_frame), use_container_width=True)
+        st.markdown('<div class="panel-note">Línea temporal de regímenes detectados por clustering no supervisado. Cada régimen resume el perfil dominante de señales (views, revisions, rss, score).</div>', unsafe_allow_html=True)
         st.markdown("</div></div>", unsafe_allow_html=True)
 
 
@@ -1299,6 +1333,7 @@ def render_model_tab(snapshot):
             st.warning("No model metrics available.")
         else:
             st.plotly_chart(plot_model_comparison(snapshot.model_metrics), use_container_width=True)
+            st.markdown('<div class="panel-note">Comparación de desempeño entre modelos candidatos usando la métrica seleccionada (f1 en este proyecto). Revisa `models/model_metrics.json` para detalles.</div>', unsafe_allow_html=True)
             display_df = snapshot.model_metrics.copy()
             for column in ["accuracy", "precision", "recall", "f1", "roc_auc"]:
                 if column in display_df.columns:
@@ -1319,6 +1354,7 @@ def render_model_tab(snapshot):
             st.warning("No feature importance available.")
         else:
             st.plotly_chart(plot_feature_importance(snapshot.feature_importance_frame), use_container_width=True)
+            st.markdown('<div class="panel-note">Importancia de características derivada del mejor modelo; útil para entender qué señales impulsan la predicción.</div>', unsafe_allow_html=True)
         st.markdown("</div></div>", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
@@ -1335,6 +1371,7 @@ def render_model_tab(snapshot):
                 unsafe_allow_html=True,
             )
             st.plotly_chart(plot_feature_importance(snapshot.feature_importance_frame), use_container_width=True)
+            st.markdown('<div class="panel-note">Importancia de características derivada del mejor modelo; útil para entender qué señales impulsan la predicción.</div>', unsafe_allow_html=True)
         else:
             st.markdown('<div class="panel-title">SHAP Driver Board</div>', unsafe_allow_html=True)
             st.markdown(
@@ -1342,6 +1379,7 @@ def render_model_tab(snapshot):
                 unsafe_allow_html=True,
             )
             st.plotly_chart(plot_shap_contributions(snapshot.shap_frame), use_container_width=True)
+            st.markdown('<div class="panel-note">Contribuciones SHAP por fecha/instancia. Interpreta con cuidado: SHAP aproxima la importancia local del modelo, no causa.</div>', unsafe_allow_html=True)
         st.markdown("</div></div>", unsafe_allow_html=True)
 
     with right:
@@ -1384,13 +1422,13 @@ def render_event_tab(snapshot, filters: dict):
 
     with right:
         st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Topic Attention Matrix</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Matriz de atención por tema</div>', unsafe_allow_html=True)
         st.markdown(
-            '<div class="panel-note">Wikipedia-monitored conflict topics and their recent public-attention / editorial footprint.</div>',
+            '<div class="panel-note">Temas monitorizados en Wikipedia y su huella reciente en atención pública y actividad editorial.</div>',
             unsafe_allow_html=True,
         )
         if snapshot.topic_activity.empty:
-            st.warning("No topic activity available.")
+            st.warning("No hay actividad por tema disponible.")
         else:
             topic_slice = snapshot.topic_activity.copy()
             topic_slice = (
@@ -1404,25 +1442,25 @@ def render_event_tab(snapshot, filters: dict):
 
 def render_method_tab(status_payload: dict | None):
     st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">Methodological Boundaries and Data Reality</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">Límites metodológicos y realidad de datos</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="panel-note">Everything below is constrained to what the current project actually contains. No synthetic conflict events or fake economic data were introduced.</div>',
+        '<div class="panel-note">Todo lo mostrado está acotado a lo que el proyecto contiene actualmente. No se introdujeron eventos sintéticos ni datos económicos inventados.</div>',
         unsafe_allow_html=True,
     )
     st.write(
-        "This platform predicts high media-pressure and public-attention states, not verified battlefield casualties or a confirmed operational order of battle."
+        "Esta plataforma predice estados de alta presión mediática y atención pública, no bajas verificadas de víctimas ni órdenes operativas confirmadas."
     )
     st.write(
-        "The regional map is powered by observed RSS regional mentions and the monitored Wikipedia conflict topics. It is a real geographic attention layer, not a synthetic geospatial event database."
+        "El mapa regional se alimenta de menciones regionales en el corpus RSS y de temas monitorizados en Wikipedia. Es una capa de atención geográfica observada, no una base de eventos geoespaciales sintética."
     )
     st.write(
-        "Energy and oil views are limited to textual energy-corridor signals from the RSS source because the project does not currently contain Brent, WTI, shipping-index or financial market time series."
+        "Las vistas sobre energía y petróleo están limitadas a señales textuales en el RSS, ya que el proyecto no contiene series temporales de mercado (Brent, WTI, índices de envío o datos financieros)."
     )
     st.write(
-        "Forecasting is built from the existing historical pressure score only, using autoregressive patterns from the current dataset. That means it is a short-horizon pressure forecast, not a full geopolitical simulation."
+        "El forecast se construye solo a partir del historial del `media_pressure_score` usando patrones autoregresivos. Es un forecast a corto plazo, no una simulación geopolítica completa."
     )
     if status_payload:
-        st.write(f"Latest pipeline run recorded in the project: `{status_payload.get('finished_at', 'N/D')}`.")
+        st.write(f"Última ejecución del pipeline registrada en el proyecto: `{status_payload.get('finished_at', 'N/D')}`.")
     st.markdown("</div></div>", unsafe_allow_html=True)
 
 
@@ -1451,10 +1489,10 @@ render_exec_metrics(snapshot)
 
 tab_overview, tab_models, tab_events, tab_method = st.tabs(
     [
-        "Operational Overview",
-        "Model and Explainability",
-        "Event Stream and Sources",
-        "Methodology",
+        "Resumen Operativo",
+        "Modelo y Explicabilidad",
+        "Flujo de Eventos y Fuentes",
+        "Metodología",
     ]
 )
 
