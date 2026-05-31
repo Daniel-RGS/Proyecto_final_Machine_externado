@@ -151,7 +151,17 @@ def inject_styles():
         .mission-filters * {
             color: #000 !important;
         }
-        .mission-filters .stMarkdown, .mission-filters .stText, .mission-filters label {
+        .mission-filters {
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 18px;
+            padding: 16px;
+            color: #000 !important;
+        }
+        .mission-filters * {
+            color: #000 !important;
+        }
+        .mission-filters .stMarkdown, .mission-filters .stText, .mission-filters label,
+        .mission-filters .css-1lsmgbg, .mission-filters .css-1d391kg {
             color: #000 !important;
         }
 
@@ -649,9 +659,14 @@ def render_dashboard_filters(dataset_df: pd.DataFrame, rss_df: pd.DataFrame, sna
     region_options = snapshot.region_snapshot["region"].tolist() if not snapshot.region_snapshot.empty else []
     theme_options = ["Military", "Energy", "Diplomacy", "Risk"]
 
+    selected_sources = source_options.copy()
+    selected_regions = region_options.copy()
+    selected_themes = theme_options.copy()
+
     with st.sidebar:
         st.markdown('<div class="mission-filters">', unsafe_allow_html=True)
         st.markdown("## Filtros de misión")
+
         selected_range = st.date_input(
             "Rango de fechas",
             value=(min_date, max_date),
@@ -659,25 +674,20 @@ def render_dashboard_filters(dataset_df: pd.DataFrame, rss_df: pd.DataFrame, sna
             max_value=max_date,
             key="mission_date_range",
         )
-        # `st.date_input` may return a single date or an iterable (list/tuple).
-        if hasattr(selected_range, "__iter__") and not isinstance(selected_range, (str, bytes)):
-            try:
-                start_date, end_date = selected_range[0], selected_range[1]
-            except Exception:
-                start_date, end_date = min_date, max_date
+
+        if isinstance(selected_range, tuple) and len(selected_range) == 2:
+            start_date, end_date = selected_range
+        elif isinstance(selected_range, list) and len(selected_range) == 2:
+            start_date, end_date = selected_range
         else:
-            # single date returned => use as both start and end
             start_date = selected_range
             end_date = selected_range
 
-        # ensure ordering
         if pd.to_datetime(start_date) > pd.to_datetime(end_date):
             start_date, end_date = end_date, start_date
 
-        # show the current selected range for clarity
         st.caption(f"Rango seleccionado: {pd.to_datetime(start_date).date()} → {pd.to_datetime(end_date).date()}")
 
-        # UX helpers: botones para seleccionar / limpiar todo
         col_a, col_b = st.columns([1, 1])
         if col_a.button("Seleccionar todo"):
             selected_sources = source_options.copy()
@@ -692,13 +702,11 @@ def render_dashboard_filters(dataset_df: pd.DataFrame, rss_df: pd.DataFrame, sna
             selected_regions = st.multiselect("Regiones", region_options, default=region_options) if region_options else []
             selected_themes = st.multiselect("Categorías", theme_options, default=theme_options)
 
-        # Mensajes cuando no hay opciones
         if not source_options:
             st.warning("No hay fuentes de noticias disponibles en data/raw/rss/rss_latest.csv")
         if not region_options:
             st.info("No hay regiones detectadas aún en el snapshot; revisa la ingesta de datos.")
 
-        # Expander con metodología y fuentes resumidas
         with st.expander("Metodología y fuentes (resumen)", expanded=False):
             st.markdown(
                 """
@@ -710,7 +718,6 @@ def render_dashboard_filters(dataset_df: pd.DataFrame, rss_df: pd.DataFrame, sna
                 unsafe_allow_html=True,
             )
 
-        # close mission filters wrapper
         st.markdown('</div>', unsafe_allow_html=True)
 
     return {
