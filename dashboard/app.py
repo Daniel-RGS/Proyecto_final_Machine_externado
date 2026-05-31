@@ -648,11 +648,25 @@ def render_dashboard_filters(dataset_df: pd.DataFrame, rss_df: pd.DataFrame, sna
             value=(min_date, max_date),
             min_value=min_date,
             max_value=max_date,
+            key="mission_date_range",
         )
-        if isinstance(selected_range, tuple) and len(selected_range) == 2:
-            start_date, end_date = selected_range
+        # `st.date_input` may return a single date or an iterable (list/tuple).
+        if hasattr(selected_range, "__iter__") and not isinstance(selected_range, (str, bytes)):
+            try:
+                start_date, end_date = selected_range[0], selected_range[1]
+            except Exception:
+                start_date, end_date = min_date, max_date
         else:
-            start_date, end_date = min_date, max_date
+            # single date returned => use as both start and end
+            start_date = selected_range
+            end_date = selected_range
+
+        # ensure ordering
+        if pd.to_datetime(start_date) > pd.to_datetime(end_date):
+            start_date, end_date = end_date, start_date
+
+        # show the current selected range for clarity
+        st.caption(f"Rango seleccionado: {pd.to_datetime(start_date).date()} → {pd.to_datetime(end_date).date()}")
 
         # UX helpers: botones para seleccionar / limpiar todo
         col_a, col_b = st.columns([1, 1])
