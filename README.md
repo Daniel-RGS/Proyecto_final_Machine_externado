@@ -81,5 +81,3 @@ Ver `DEPLOYMENT.md` para pasos específicos de despliegue y variables de entorno
 - `models/best_escalation_model.pkl` — artefacto entrenado (si existe).
 
 ---
-
-Si quieres, puedo añadir una sección breve con las instrucciones para publicar en Streamlit Cloud (deploy automático desde `main`) y completar `DEPLOYMENT.md`.
