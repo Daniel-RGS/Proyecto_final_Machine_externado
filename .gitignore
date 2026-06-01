@@ -1,9 +1,9 @@
-venv/
+mingit/
+mingit.zip
 __pycache__/
 *.pyc
 .env
-.DS_Store
-__MACOSX/
-.pycache_tmp/
-.pycache/
-streamlit_*.log
+.venv/
+env/
+venv/
+*.pkl

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import joblib
@@ -140,29 +141,29 @@ def inject_styles():
         [data-testid="stSidebar"] {
             background:
                 linear-gradient(180deg, rgba(7, 22, 29, 0.98) 0%, rgba(6, 17, 23, 0.98) 100%);
-            border-right: 1px solid rgba(112, 211, 255, 0.08);
+            border-right: 1px solid rgba(112, 211, 255, 0.12);
+            backdrop-filter: blur(12px);
         }
 
         [data-testid="stSidebar"] * {
             color: var(--ink);
         }
 
-        /* Mission filters override: use dark text for readability against sidebar */
-        .mission-filters * {
-            color: #000 !important;
+        .mission-title {
+            color: var(--cyan);
+            font-family: "Rajdhani", sans-serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
         }
-        .mission-filters {
-            background: rgba(255, 255, 255, 0.92);
-            border-radius: 18px;
-            padding: 16px;
-            color: #000 !important;
-        }
-        .mission-filters * {
-            color: #000 !important;
-        }
-        .mission-filters .stMarkdown, .mission-filters .stText, .mission-filters label,
-        .mission-filters .css-1lsmgbg, .mission-filters .css-1d391kg {
-            color: #000 !important;
+
+        .mission-subtitle {
+            color: var(--muted);
+            font-size: 0.82rem;
+            line-height: 1.45;
+            margin-bottom: 12px;
         }
 
         h1, h2, h3 {
@@ -173,11 +174,17 @@ def inject_styles():
         }
 
         [data-testid="stMetric"] {
-            background: linear-gradient(180deg, rgba(12, 31, 41, 0.95), rgba(9, 23, 31, 0.92));
-            border: 1px solid rgba(112, 211, 255, 0.14);
-            border-radius: 18px;
-            padding: 14px 14px 12px;
-            box-shadow: inset 0 0 0 1px rgba(85, 214, 255, 0.03), 0 16px 32px rgba(0, 0, 0, 0.26);
+            background: linear-gradient(180deg, rgba(16, 40, 51, 0.75), rgba(9, 23, 31, 0.85));
+            border: 1px solid rgba(112, 211, 255, 0.18);
+            border-radius: 20px;
+            padding: 16px 16px 14px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(8px);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+        [data-testid="stMetric"]:hover {
+            transform: translateY(-4px);
+            border-color: rgba(112, 211, 255, 0.4);
         }
 
         div[data-testid="stMetricLabel"] {
@@ -263,11 +270,12 @@ def inject_styles():
         .hero-panel, .surface-panel {
             position: relative;
             overflow: hidden;
-            border-radius: 22px;
+            border-radius: 24px;
             background:
-                linear-gradient(180deg, rgba(12, 31, 41, 0.94), rgba(8, 21, 29, 0.95));
-            border: 1px solid rgba(112, 211, 255, 0.12);
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+                linear-gradient(180deg, rgba(16, 40, 51, 0.7), rgba(8, 21, 29, 0.8));
+            border: 1px solid rgba(112, 211, 255, 0.15);
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(14px);
         }
 
         .hero-panel::before, .surface-panel::before {
@@ -490,6 +498,50 @@ def inject_styles():
             margin-top: 14px;
         }
 
+        .method-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .method-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            align-items: stretch;
+        }
+
+        .method-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            align-items: stretch;
+        }
+
+        .method-card {
+            min-height: 170px;
+            padding: 1.35rem;
+        }
+
+        .method-small-card {
+            min-height: 145px;
+            padding: 1.25rem;
+        }
+
+        .method-source {
+            min-height: 132px;
+            padding: 1.25rem;
+        }
+
+        .method-step {
+            color: var(--cyan);
+            font-family: "Space Mono", monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 0.55rem;
+        }
+
         .surface-body {
             position: relative;
             z-index: 1;
@@ -583,6 +635,16 @@ def inject_styles():
             .hero-grid, .section-grid, .command-ribbon {
                 grid-template-columns: 1fr;
             }
+
+            .method-grid-4, .method-grid-3 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 760px) {
+            .method-grid-4, .method-grid-3 {
+                grid-template-columns: 1fr;
+            }
         }
         </style>
         """,
@@ -657,15 +719,27 @@ def render_dashboard_filters(dataset_df: pd.DataFrame, rss_df: pd.DataFrame, sna
     max_date = dataset_df["date"].max().date()
     source_options = sorted(rss_df["source"].dropna().unique().tolist()) if not rss_df.empty else []
     region_options = snapshot.region_snapshot["region"].tolist() if not snapshot.region_snapshot.empty else []
-    theme_options = ["Military", "Energy", "Diplomacy", "Risk"]
+    theme_options = ["Militar", "Energía", "Diplomacia", "Riesgo"]
 
-    selected_sources = source_options.copy()
-    selected_regions = region_options.copy()
-    selected_themes = theme_options.copy()
+    for key, options in [
+        ("mission_sources", source_options),
+        ("mission_regions", region_options),
+        ("mission_themes", theme_options),
+    ]:
+        current = st.session_state.get(key)
+        if current is None:
+            st.session_state[key] = options.copy()
+        else:
+            st.session_state[key] = [value for value in current if value in options]
 
     with st.sidebar:
-        st.markdown('<div class="mission-filters">', unsafe_allow_html=True)
-        st.markdown("## Filtros de misión")
+        st.markdown(
+            """
+            <div class="mission-title">Misión y filtros</div>
+            <div class="mission-subtitle">Ajusta la ventana temporal y limita fuentes, regiones o categorías del análisis.</div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         selected_range = st.date_input(
             "Rango de fechas",
@@ -688,19 +762,41 @@ def render_dashboard_filters(dataset_df: pd.DataFrame, rss_df: pd.DataFrame, sna
 
         st.caption(f"Rango seleccionado: {pd.to_datetime(start_date).date()} → {pd.to_datetime(end_date).date()}")
 
-        col_a, col_b = st.columns([1, 1])
-        if col_a.button("Seleccionar todo"):
+        filter_scope = st.radio(
+            "Alcance del análisis",
+            ["Todo disponible", "Personalizado"],
+            horizontal=False,
+            key="mission_filter_scope",
+        )
+
+        if filter_scope == "Personalizado":
+            col_a, col_b = st.columns([1, 1])
+            if col_a.button("Seleccionar todo", key="mission_select_all"):
+                st.session_state["mission_sources"] = source_options.copy()
+                st.session_state["mission_regions"] = region_options.copy()
+                st.session_state["mission_themes"] = theme_options.copy()
+            if col_b.button("Limpiar", key="mission_clear"):
+                st.session_state["mission_sources"] = []
+                st.session_state["mission_regions"] = []
+                st.session_state["mission_themes"] = []
+
+            selected_sources = (
+                st.multiselect("Fuentes", source_options, key="mission_sources") if source_options else []
+            )
+            selected_regions = (
+                st.multiselect("Regiones", region_options, key="mission_regions") if region_options else []
+            )
+            selected_themes = st.multiselect("Categorías", theme_options, key="mission_themes")
+        else:
             selected_sources = source_options.copy()
             selected_regions = region_options.copy()
             selected_themes = theme_options.copy()
-        elif col_b.button("Borrar selección"):
-            selected_sources = []
-            selected_regions = []
-            selected_themes = []
-        else:
-            selected_sources = st.multiselect("Fuentes", source_options, default=source_options) if source_options else []
-            selected_regions = st.multiselect("Regiones", region_options, default=region_options) if region_options else []
-            selected_themes = st.multiselect("Categorías", theme_options, default=theme_options)
+
+        st.caption(
+            f"Activos: {len(selected_sources)}/{len(source_options)} fuentes · "
+            f"{len(selected_regions)}/{len(region_options)} regiones · "
+            f"{len(selected_themes)}/{len(theme_options)} categorías"
+        )
 
         if not source_options:
             st.warning("No hay fuentes de noticias disponibles en data/raw/rss/rss_latest.csv")
@@ -718,13 +814,12 @@ def render_dashboard_filters(dataset_df: pd.DataFrame, rss_df: pd.DataFrame, sna
                 unsafe_allow_html=True,
             )
 
-        st.markdown('</div>', unsafe_allow_html=True)
-
     return {
         "date_window": (pd.Timestamp(start_date), pd.Timestamp(end_date)),
         "sources": selected_sources,
         "regions": selected_regions,
         "themes": selected_themes,
+        "custom_filtering": filter_scope == "Personalizado",
     }
 
 
@@ -793,9 +888,8 @@ def render_sidebar(status_payload: dict | None, snapshot):
 
 def plot_conflict_map(region_snapshot: pd.DataFrame) -> go.Figure:
     active = region_snapshot.copy()
-    active["label"] = active["region"] + "<br>Mentions 7d: " + active["recent_mentions"].round(1).astype(str)
-
     fig = go.Figure()
+
     if not active.empty:
         hottest = active.sort_values("risk_intensity", ascending=False).head(4).reset_index(drop=True)
         if len(hottest) > 1:
@@ -820,10 +914,10 @@ def plot_conflict_map(region_snapshot: pd.DataFrame) -> go.Figure:
                 customdata=active[["recent_mentions", "wiki_views_7d", "wiki_revisions_7d", "latest_headline"]],
                 hovertemplate=(
                     "<b>%{text}</b><br>"
-                    "Headline mentions (7d): %{customdata[0]:.0f}<br>"
-                    "Wiki views (7d): %{customdata[1]:.0f}<br>"
-                    "Wiki revisions (7d): %{customdata[2]:.0f}<br>"
-                    "Latest headline: %{customdata[3]}<extra></extra>"
+                    "Menciones RSS (7d): %{customdata[0]:.0f}<br>"
+                    "Vistas Wiki (7d): %{customdata[1]:.0f}<br>"
+                    "Revisiones Wiki (7d): %{customdata[2]:.0f}<br>"
+                    "Último titular: %{customdata[3]}<extra></extra>"
                 ),
                 mode="markers+text",
                 textposition="top center",
@@ -831,22 +925,24 @@ def plot_conflict_map(region_snapshot: pd.DataFrame) -> go.Figure:
                     size=active["marker_size"],
                     color=active["risk_intensity"],
                     colorscale=[
-                        [0.0, "#1d6f8a"],
-                        [0.5, "#36b5da"],
-                        [0.75, "#ffb347"],
-                        [1.0, "#ff5c5c"],
+                        [0.0, "#00c3ff"],
+                        [0.4, "#00ffcc"],
+                        [0.7, "#ffb143"],
+                        [1.0, "#ff4b2b"],
                     ],
                     line=dict(width=1.2, color="rgba(255,255,255,0.6)"),
                     opacity=0.92,
                     showscale=True,
                     colorbar=dict(
-                        title="Risk",
-                        thickness=10,
-                        len=0.7,
+                        title=dict(
+                            text="Riesgo",
+                            font=dict(color=INK, family="Rajdhani")
+                        ),
+                        thickness=12,
+                        len=0.62,
                         x=0.98,
-                        bgcolor="rgba(6,19,26,0.4)",
-                        tickfont=dict(color=INK),
-                        titlefont=dict(color=INK),
+                        bgcolor="rgba(6,19,26,0.45)",
+                        tickfont=dict(color=INK, family="Space Mono"),
                     ),
                 ),
                 textfont=dict(color="#dff9ff", family="IBM Plex Sans", size=11),
@@ -865,13 +961,13 @@ def plot_conflict_map(region_snapshot: pd.DataFrame) -> go.Figure:
         coastlinecolor="rgba(125, 196, 220, 0.12)",
         showocean=True,
         showlakes=False,
-        lataxis=dict(showgrid=True, gridcolor="rgba(85,214,255,0.12)", dtick=5, range=[10, 42]),
-        lonaxis=dict(showgrid=True, gridcolor="rgba(85,214,255,0.12)", dtick=10, range=[25, 65]),
-        center=dict(lat=28, lon=45),
+        lataxis=dict(showgrid=True, gridcolor="rgba(85,214,255,0.12)", dtick=4, range=[18, 38]),
+        lonaxis=dict(showgrid=True, gridcolor="rgba(85,214,255,0.12)", dtick=5, range=[32, 58]),
+        center=dict(lat=29, lon=45),
     )
     fig.update_layout(
         margin=dict(l=0, r=0, t=0, b=0),
-        height=510,
+        height=540,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         dragmode="pan",
@@ -888,12 +984,12 @@ def plot_theme_activity(theme_daily: pd.DataFrame, selected_themes: list[str] | 
         "theme_risk": CYAN,
     }
     labels = {
-        "theme_military": "Military",
-        "theme_energy": "Energy",
-        "theme_diplomacy": "Diplomacy",
-        "theme_risk": "Risk",
+        "theme_military": "Militar",
+        "theme_energy": "Energía",
+        "theme_diplomacy": "Diplomacia",
+        "theme_risk": "Riesgo",
     }
-    allowed = set(selected_themes or labels.values())
+    allowed = set(labels.values() if selected_themes is None else selected_themes)
     for column in ["theme_military", "theme_energy", "theme_diplomacy", "theme_risk"]:
         if column not in theme_daily.columns or labels[column] not in allowed:
             continue
@@ -913,7 +1009,7 @@ def plot_theme_activity(theme_daily: pd.DataFrame, selected_themes: list[str] | 
         plot_bgcolor="rgba(0,0,0,0)",
         height=300,
         xaxis_title="",
-        yaxis_title="Keyword hits",
+        yaxis_title="Menciones (Palabras clave)",
         font=dict(color=INK),
         legend=dict(orientation="h", y=1.05, x=0),
     )
@@ -929,25 +1025,17 @@ def plot_pressure_and_forecast(dataset_df: pd.DataFrame, snapshot) -> go.Figure:
             x=dataset_df["date"],
             y=dataset_df["media_pressure_score"],
             mode="lines",
-            name="Observed pressure score",
+            name="Puntaje de presión",
             line=dict(color=CYAN, width=2.8),
         )
     )
-    fig.add_trace(
-        go.Scatter(
-            x=dataset_df["date"],
-            y=dataset_df["media_pressure_score"].rolling(14, min_periods=1).mean(),
-            mode="lines",
-            name="Rolling 14d mean",
-            line=dict(color="rgba(255,255,255,0.45)", width=1.7, dash="dot"),
-        )
-    )
+
     threshold = float(dataset_df["target_threshold_q75"].iloc[0])
     fig.add_hline(
         y=threshold,
         line_color=AMBER,
         line_dash="dash",
-        annotation_text="Escalation threshold",
+        annotation_text="Umbral de escalada",
         annotation_font_color=AMBER,
     )
 
@@ -960,41 +1048,20 @@ def plot_pressure_and_forecast(dataset_df: pd.DataFrame, snapshot) -> go.Figure:
                     x=flagged["date"],
                     y=flagged["media_pressure_score"],
                     mode="markers",
-                    name="Anomalies",
+                    name="Anomalías térmicas",
                     marker=dict(color=RED, size=9, line=dict(color="#fff", width=1)),
                 )
             )
 
     forecast = snapshot.forecast_frame
     if not forecast.empty:
-        fig.add_trace(
-            go.Scatter(
-                x=forecast["date"],
-                y=forecast["upper_bound"],
-                mode="lines",
-                line=dict(width=0),
-                showlegend=False,
-                hoverinfo="skip",
-            )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=forecast["date"],
-                y=forecast["lower_bound"],
-                mode="lines",
-                line=dict(width=0),
-                fill="tonexty",
-                fillcolor="rgba(85,214,255,0.12)",
-                name="Forecast confidence band",
-                hoverinfo="skip",
-            )
-        )
+
         fig.add_trace(
             go.Scatter(
                 x=forecast["date"],
                 y=forecast["forecast_score"],
                 mode="lines+markers",
-                name="Forecast score",
+                name="Puntaje pronosticado",
                 line=dict(color=RED, width=2.5, dash="dash"),
                 marker=dict(size=6),
             )
@@ -1006,7 +1073,7 @@ def plot_pressure_and_forecast(dataset_df: pd.DataFrame, snapshot) -> go.Figure:
         plot_bgcolor="rgba(0,0,0,0)",
         height=360,
         xaxis_title="",
-        yaxis_title="Pressure score",
+        yaxis_title="Puntaje de Presión",
         font=dict(color=INK),
         legend=dict(orientation="h", y=1.05, x=0),
     )
@@ -1026,13 +1093,13 @@ def plot_region_risk_bars(region_snapshot: pd.DataFrame) -> go.Figure:
         color_continuous_scale=["#1d6f8a", "#36b5da", "#ffb347", "#ff5c5c"],
         text="recent_mentions",
     )
-    fig.update_traces(texttemplate="%{text:.0f} mentions", textposition="outside")
+    fig.update_traces(texttemplate="%{text:.0f} menciones", textposition="outside")
     fig.update_layout(
         margin=dict(l=10, r=10, t=10, b=10),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         height=300,
-        xaxis_title="Risk intensity",
+        xaxis_title="Intensidad de Riesgo",
         yaxis_title="",
         coloraxis_showscale=False,
         font=dict(color=INK),
@@ -1058,7 +1125,7 @@ def plot_regime_timeline(regime_frame: pd.DataFrame) -> go.Figure:
         plot_bgcolor="rgba(0,0,0,0)",
         height=280,
         xaxis_title="",
-        yaxis_title="Detected regime",
+        yaxis_title="Fase del conflicto (Régimen)",
         font=dict(color=INK),
         showlegend=False,
     )
@@ -1088,7 +1155,7 @@ def plot_model_comparison(model_metrics: pd.DataFrame) -> go.Figure:
         plot_bgcolor="rgba(0,0,0,0)",
         height=330,
         xaxis_title="",
-        yaxis_title="Score",
+        yaxis_title="Métrica de precisión",
         font=dict(color=INK),
         legend=dict(orientation="h", y=1.04, x=0),
     )
@@ -1111,7 +1178,7 @@ def plot_feature_importance(feature_importance_frame: pd.DataFrame) -> go.Figure
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         height=340,
-        xaxis_title="Feature importance",
+        xaxis_title="Importancia del indicador (Feature importance)",
         yaxis_title="",
         font=dict(color=INK),
     )
@@ -1138,12 +1205,83 @@ def plot_shap_contributions(shap_frame: pd.DataFrame) -> go.Figure:
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         height=360,
-        xaxis_title="SHAP contribution to escalation probability",
+        xaxis_title="Contribución del Shapley Value (Riesgo)",
         yaxis_title="",
         font=dict(color=INK),
     )
     fig.update_xaxes(gridcolor="rgba(255,255,255,0.08)", zerolinecolor="rgba(255,255,255,0.18)")
     fig.update_yaxes(showgrid=False)
+    return fig
+
+
+def plot_wikipedia_attention_timeline(topic_activity: pd.DataFrame) -> go.Figure:
+    daily = (
+        topic_activity.groupby(["date", "topic_label"], as_index=False)[["views", "revision_count"]]
+        .sum()
+        .sort_values("date")
+    )
+    fig = px.area(
+        daily,
+        x="date",
+        y="views",
+        color="topic_label",
+        color_discrete_sequence=[CYAN, GREEN, AMBER, RED, "#a1f0ff"],
+    )
+    fig.update_layout(
+        margin=dict(l=10, r=10, t=10, b=10),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        height=330,
+        xaxis_title="",
+        yaxis_title="Vistas diarias",
+        font=dict(color=INK),
+        legend=dict(orientation="h", y=1.05, x=0),
+    )
+    fig.update_xaxes(showgrid=False)
+    fig.update_yaxes(gridcolor="rgba(255,255,255,0.08)")
+    return fig
+
+
+def plot_wikipedia_topic_mix(topic_activity: pd.DataFrame) -> go.Figure:
+    topic_mix = (
+        topic_activity.groupby("topic_label", as_index=False)[["views", "revision_count"]]
+        .sum()
+        .sort_values("views", ascending=True)
+    )
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=topic_mix["views"],
+            y=topic_mix["topic_label"],
+            orientation="h",
+            name="Vistas",
+            marker_color=CYAN,
+            text=topic_mix["views"],
+            texttemplate="%{text:,.0f}",
+            textposition="outside",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=topic_mix["revision_count"],
+            y=topic_mix["topic_label"],
+            mode="markers",
+            name="Revisiones",
+            marker=dict(color=AMBER, size=12, line=dict(color="#fff", width=1)),
+            xaxis="x2",
+        )
+    )
+    fig.update_layout(
+        margin=dict(l=10, r=20, t=10, b=10),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        height=330,
+        xaxis=dict(title="Vistas acumuladas", gridcolor="rgba(255,255,255,0.08)"),
+        xaxis2=dict(title="Revisiones", overlaying="x", side="top", showgrid=False),
+        yaxis_title="",
+        font=dict(color=INK),
+        legend=dict(orientation="h", y=1.14, x=0),
+    )
     return fig
 
 
@@ -1180,11 +1318,89 @@ def render_command_ribbon(snapshot, status_payload):
     )
 
 
-def render_hero(snapshot, filters: dict):
+
+def render_hero(snapshot, filters: dict, page: str = "Home"):
     execu = snapshot.executive
-    filtered_region_snapshot = snapshot.region_snapshot[
-        snapshot.region_snapshot["region"].isin(filters["regions"])
-    ] if filters["regions"] else snapshot.region_snapshot
+    hero_titles = {
+        "Home": "Sala de monitoreo y escalada",
+        "Map": "Teatro de Conflicto",
+        "Models": "Inteligencia Predictiva y ML",
+        "Events": "Monitor Táctico de Fuentes",
+        "Method": "Metodología y Sesgos"
+    }
+    hero_copies = {
+        "Home": "Vista operativa escalonada. Navega por las subsecciones abajo para ver cada métrica.",
+        "Map": "Análisis geográfico y mapas de atención regional derivados de reportes RSS.",
+        "Models": "Auditoría de inteligencia artificial. Navega las subsecciones para leer cada reporte.",
+        "Events": "Flujo textual de fuentes OSINT. Usa las pestañas para cambiar de informe.",
+        "Method": "Especificaciones del diseño, arquitectura y validaciones del proyecto."
+    }
+    htitle = hero_titles.get(page, "Monitor Geopolítico")
+    hcopy = hero_copies.get(page, "Análisis de inteligencia OSINT.")
+
+    with st.container():
+        st.caption("Plataforma de inteligencia · Irán / Israel / EE. UU. / energía / escalada")
+        st.title(htitle)
+        st.write(hcopy)
+
+        if page == "Home":
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Probabilidad de escalada", f"{execu.get('escalation_probability', 0):.1%}")
+            col2.metric("Pico pronosticado", f"{execu.get('forecast_peak', 0):.1f}")
+            col3.metric("Fecha pico pronosticada", str(execu.get("forecast_peak_date", "N/D")))
+
+            col4, col5, col6 = st.columns(3)
+            col4.metric("Señal militar", str(execu.get("military_signal", "N/D")))
+            col5.metric("Señal energética", str(execu.get("energy_signal", "N/D")))
+            col6.metric("Conteo temas de riesgo", str(execu.get("risk_signal", "N/D")))
+
+
+def render_map_page(snapshot, filters: dict):
+    selected_regions = filters["regions"]
+    if selected_regions:
+        filtered_region_snapshot = snapshot.region_snapshot[
+            snapshot.region_snapshot["region"].isin(selected_regions)
+        ]
+    else:
+        filtered_region_snapshot = snapshot.region_snapshot.copy()
+    
+    st.markdown(
+        """
+        <div class="surface-panel" style="margin-top: 1.5rem; margin-bottom: 0.5rem; padding: 2rem;">
+            <div class="panel-title" style="font-size: 1.6rem; color: #55d6ff;">Mapa Operacional del Conflicto</div>
+            <div class="panel-note" style="margin-top: 1rem; font-size: 1.05rem;">
+                <strong>Cómo leer e interpretar este mapa</strong><br><br>
+                Este mapa está enfocado únicamente en el teatro Levante-Golfo Pérsico-Irán que analiza el proyecto: Israel/Gaza/Líbano/Siria/Iraq/Kuwait/Hormuz/Irán.<br><br>
+                <strong>El color indica peligro potencial:</strong> Si una región se pinta de color ámbar o rojo intenso, significa que un alto porcentaje de las noticias actuales habla de incidentes severos o ataques armados ahí.<br>
+                <strong>El tamaño de la burbuja:</strong> Indica literalmente qué tanta fama o menciones está atrayendo ese sitio geográfico (aunque sea por motivos no violentos). 
+            </div>
+        </div>
+        """, unsafe_allow_html=True
+    )
+    st.plotly_chart(
+        plot_conflict_map(filtered_region_snapshot),
+        use_container_width=True,
+        config={"scrollZoom": False, "displayModeBar": True},
+    )
+
+
+def render_exec_metrics(snapshot):
+    execu = snapshot.executive
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    col1.metric("Nivel de amenaza (Color)", execu["threat_level"])
+    col2.metric("Nivel de riesgo global", f"{execu['global_risk_proxy']:.1f}")
+    col3.metric("Tendencia Semanal", f"{execu['weekly_trend']:+.1f}")
+    col4.metric("Tendencia Mensual", f"{execu['monthly_trend']:+.1f}")
+    col5.metric("Confianza de Predicción", f"{execu['model_confidence']:.1%}")
+    col6.metric("Puntaje de anomalías", f"{execu['anomaly_score']:.3f}")
+
+
+def render_overview_tab(dataset_df: pd.DataFrame, snapshot, filters: dict):
+    filtered_dataset = apply_date_window(dataset_df, filters["date_window"])
+    filtered_theme_daily = apply_date_window(snapshot.theme_daily, filters["date_window"])
+    filtered_regime_frame = apply_date_window(snapshot.regime_frame, filters["date_window"])
+    filtered_region_snapshot = snapshot.region_snapshot
+    
     radar_html = """
         <div class="radar-shell">
             <div class="radar-sweep"></div>
@@ -1201,7 +1417,7 @@ def render_hero(snapshot, filters: dict):
                     <span class="alert-dot" style="background:{alert['color']};"></span>
                     {alert['label']}
                 </div>
-                <div style="color:{MUTED}; font-family:'Space Mono', monospace; font-size:0.72rem;">{alert['timestamp']}</div>
+                <div style="color:#87a9b5; font-family:'Space Mono', monospace; font-size:0.72rem;">{alert['timestamp']}</div>
             </div>
             <div class="alert-title">{alert['title']}</div>
             <div class="alert-copy">{alert['description']}</div>
@@ -1210,87 +1426,423 @@ def render_hero(snapshot, filters: dict):
         """
         for alert in snapshot.alerts
     )
+    
+    st.markdown(
+        f"""
+        <div class="surface-panel" style="margin-bottom: 2rem; padding: 1.5rem;">
+            <div class="panel-title" style="font-size: 1.4rem;">Ticker de Alertas Inmediatas</div>
+            <div class="panel-note" style="margin-bottom: 1rem; font-size: 1.05rem;">
+                <strong>Resumen automático:</strong> El cerebro del sistema escribe notas automatizadas aquí si nota algo raro HOY. Si no hay avisos críticos, las alertas serán de rutina (en verde o azul).
+            </div>
+            {radar_html}
+            <div style="height:14px"></div>
+            <div class="alert-stack">{alerts_html}</div>
+        </div>
+        """, unsafe_allow_html=True
+    )
 
-    # format executive values to avoid raw template rendering issues
-    esc_prob = f"{execu.get('escalation_probability', 0):.1%}"
-    forecast_peak_str = f"{execu.get('forecast_peak', 0):.1f}"
-    military_signal = str(execu.get('military_signal', 'N/D'))
-    energy_signal = str(execu.get('energy_signal', 'N/D'))
-    risk_signal = str(execu.get('risk_signal', 'N/D'))
-    forecast_peak_date = str(execu.get('forecast_peak_date', 'N/D'))
+    t1, t2, t3, t4 = st.tabs([
+        "Pronóstico de Tensión Mediática", 
+        "Top Riesgo Regional", 
+        "Seguimiento por Temática", 
+        "Fases Históricas"
+    ])
+
+    with t1:
+        st.markdown(
+            """
+            <div class="surface-panel" style="padding: 1.5rem; margin-bottom: 1rem;">
+                <div class="panel-title" style="font-size: 1.4rem;">Evolución de la Presión Mediática y Pronóstico a 10 días</div>
+                <div class="panel-note" style="font-size: 1.05rem;">
+                    <strong>Cómo interpretar este gráfico</strong><br>
+                    Mide el "calor" de las noticias y la población. La línea celeste principal marca la cantidad de presión detectada este último tiempo.<br>
+                    • Los <strong>Puntos Rojos</strong> son días donde ocurrieron "anomalías" (atentados, incidentes masivos que dispararon los medios repentinamente).<br>
+                    • La <strong>Línea Roja final (a la derecha)</strong> es la predicción del software: te está indicando si en los próximos 10 días se espera que el mundo estalle con noticias de este tema (escalada) o si retornará a la calma. 
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+        st.plotly_chart(plot_pressure_and_forecast(filtered_dataset, snapshot), use_container_width=True)
+
+    with t2:
+        st.markdown(
+            """
+            <div class="surface-panel" style="padding: 1.5rem; margin-bottom: 1rem;">
+                <div class="panel-title" style="font-size: 1.4rem;">Ranking de Peligro Regional</div>
+                <div class="panel-note" style="font-size: 1.05rem;">
+                    <strong>Cómo interpretar este gráfico</strong><br>
+                    Es una lista de mayor a menor. Mientras más larga es la barra hacia la derecha y más oscuro es su color (naranja/rojo), 
+                    más vinculada está esa zona geográfica a menciones violentas o de riesgo en los principales noticiarios de hoy.
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+        st.plotly_chart(plot_region_risk_bars(filtered_region_snapshot), use_container_width=True)
+
+    with t3:
+        st.markdown(
+            """
+            <div class="surface-panel" style="padding: 1.5rem; margin-bottom: 1rem;">
+                <div class="panel-title" style="font-size: 1.4rem;">Menciones Específicas por Temática</div>
+                <div class="panel-note" style="font-size: 1.05rem;">
+                    <strong>Cómo interpretar este gráfico</strong><br>
+                    Analiza exclusivamente si el mundo entero está charlando actualmente sobre estrategias "Militares" (bombardeos, fuerzas), o de "Energía" (petróleo, gas, barriles). 
+                    Cuando la línea amarilla (energía) se dispara de golpe, significa que las cadenas de texto mundiales advierten un fallo en esa cadena económica.
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+        theme_cols = [c for c in ["theme_military", "theme_energy", "theme_diplomacy", "theme_risk"] if c in filtered_theme_daily.columns]
+        if theme_cols:
+            st.line_chart(filtered_theme_daily.set_index("date")[theme_cols], use_container_width=True)
+        else:
+            st.info("No hay datos temáticos disponibles.")
+
+    with t4:
+        st.markdown(
+            """
+            <div class="surface-panel" style="padding: 1.5rem; margin-bottom: 1rem;">
+                <div class="panel-title" style="font-size: 1.4rem;">Cronología Continua de Fases Operativas</div>
+                <div class="panel-note" style="font-size: 1.05rem;">
+                    <strong>Cómo interpretar este gráfico</strong><br>
+                    Pinta la historia como un muro de colores. Te ayuda a entender si la última semana entera ha sido considerada por la máquina 
+                    como un "régimen pacífico prolongado", o bien como un "régimen crítico volátil". Las caídas y subidas repentinas marcan un antes y un después en el conflicto mundial.
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+        st.plotly_chart(plot_regime_timeline(filtered_regime_frame), use_container_width=True)
+
+
+def render_model_tab(snapshot):
+    t1, t2, t3, t4 = st.tabs([
+        "Comparativa del Algoritmo",
+        "Indicadores de Mayor Peso",
+        "Transparencia Clínica (SHAP)",
+        "Registro Aislado"
+    ])
+    
+    with t1:
+        st.markdown(
+            """
+            <div class="surface-panel" style="padding: 1.5rem; margin-bottom: 1rem;">
+                <div class="panel-title" style="font-size: 1.4rem;">Grilla de Métricas en Modelos Evaluados</div>
+                <div class="panel-note" style="font-size: 1.05rem;">
+                    <strong>Por qué es importante esto</strong><br>
+                    Para que nuestra predicción no esté errada, el sistema compitió resolviendo exámenes del pasado. 
+                    Aquí están las calificaciones que sacaron los distintos algoritmos: una barra altísima indica que casi no cometieron errores. La precisión se mide entre 0 y 1.
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+        if snapshot.model_metrics.empty:
+            st.warning("No hay métricas de modelos disponibles.")
+        else:
+            st.plotly_chart(plot_model_comparison(snapshot.model_metrics), use_container_width=True)
+            display_df = snapshot.model_metrics.copy()
+            for column in ["accuracy", "precision", "recall", "f1", "roc_auc"]:
+                if column in display_df.columns:
+                    display_df[column] = display_df[column].map(
+                        lambda value: f"{value:.3f}" if pd.notna(value) else "N/D"
+                    )
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+    with t2:
+        st.markdown(
+            """
+            <div class="surface-panel" style="padding: 1.5rem; margin-bottom: 1rem;">
+                <div class="panel-title" style="font-size: 1.4rem;">Variables Primordiales: ¿A qué le presta más atención el sistema?</div>
+                <div class="panel-note" style="font-size: 1.05rem;">
+                    <strong>Qué significa este ranking</strong><br>
+                    Determina qué información ha sido históricamente la más vital. Si la variable más grande (la de arriba) recae por ejemplo en "wikipedia visits", 
+                    significa que las visitas humanas tienen una correlación altísima de predecir o influir el resultado; y nos dice que el algoritmo depende de esos sensores.
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+        if snapshot.feature_importance_frame.empty:
+            st.warning("No hay importancia de características disponible.")
+        else:
+            st.plotly_chart(plot_feature_importance(snapshot.feature_importance_frame), use_container_width=True)
+
+    with t3:
+        st.markdown(
+            """
+            <div class="surface-panel" style="padding: 1.5rem; margin-bottom: 1rem;">
+                <div class="panel-title" style="font-size: 1.4rem;">Explicabilidad SHAP: Decisiones tomadas HOY</div>
+                <div class="panel-note" style="font-size: 1.05rem;">
+                    <strong>Transparencia total, para evitar "cajas negras":</strong><br>
+                    Este diagrama mapea cómo se construyó el número de riesgo exacto de *hoy*. Las franjas <strong>Rojas</strong> son aquellos culpables que añadieron 
+                    porcentajes de alarma a este día de trabajo táctico, empujando la amenaza global. Las barras <strong>Verdes</strong> son eventos o caídas estadísticas que calmaron el ambiente.
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+        if snapshot.shap_frame.empty:
+            st.warning("Variables explicatorias no generadas en este registro.")
+        else:
+            st.plotly_chart(plot_shap_contributions(snapshot.shap_frame), use_container_width=True)
+
+    with t4:
+        st.markdown(
+            """
+            <div class="surface-panel" style="padding: 1.5rem; margin-bottom: 1rem;">
+                <div class="panel-title" style="font-size: 1.4rem;">Reporte Analítico Cruzado (Data del SHAP)</div>
+                <div class="panel-note" style="font-size: 1.05rem;">
+                    <strong>Versión Textual Directa:</strong> Exclusivamente para analistas que desean descargar los datos o copiar y pegarlos. Son las sumas concretas de impacto.
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+        if snapshot.top_drivers:
+            st.dataframe(pd.DataFrame(snapshot.top_drivers), use_container_width=True, hide_index=True)
+        else:
+            st.dataframe(pd.DataFrame(columns=["feature", "value", "effect"]), use_container_width=True, hide_index=True)
+
+
+def render_event_tab(snapshot, filters: dict):
+    filtered_events = apply_date_window(snapshot.recent_events, filters["date_window"])
+    if "source" in filtered_events.columns:
+        filtered_events = filtered_events[filtered_events["source"].isin(filters["sources"])]
+
+    t1, t2 = st.tabs([
+        "Cintas de Prensa (RSS Feeds Crudos)",
+        "Monitor Mundial de Wikipedia (Búsquedas Sociales)"
+    ])
+
+    with t1:
+        st.markdown(
+            """
+            <div class="surface-panel" style="padding: 1.5rem; margin-bottom: 1rem;">
+                <div class="panel-title" style="font-size: 1.4rem;">Transmisión Informativa Global</div>
+                <div class="panel-note" style="font-size: 1.05rem;">
+                    <strong>De dónde ha ingerido los sucesos el bot</strong><br>
+                    Esta pestaña documenta la matriz real de lectura del bot. Contiene artículos textuales sin modificar extraídos de canales libres como la BBC o Al-Jazeera.
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+        if filtered_events.empty:
+            st.warning("No hay flujo de eventos disponible para los filtros seleccionados.")
+        else:
+            display_df = filtered_events[["date", "source", "title_clean", "link"]].copy().head(20)
+            display_df["date"] = display_df["date"].dt.strftime("%Y-%m-%d")
+            display_df.columns = ["date", "source", "headline", "link"]
+            st.dataframe(display_df, use_container_width=True, hide_index=True, height=520)
+
+    with t2:
+        st.markdown(
+            """
+            <div class="surface-panel" style="padding: 1.5rem; margin-bottom: 1rem;">
+                <div class="panel-title" style="font-size: 1.4rem;">Radar de Temas Sociales Actuales</div>
+                <div class="panel-note" style="font-size: 1.05rem;">
+                    <strong>Por qué medimos el interés social</strong><br>
+                    El número de usuarios leyendo artículos estratégicos de guerra (por ejemplo "Armamento Nuclear de Israel") sube de golpe cuando el ruido colectivo de fondo siente peligro inminente, lo cual suele ser la antesala de incidentes geográficos severos.
+                </div>
+            </div>
+            """, unsafe_allow_html=True
+        )
+        if snapshot.topic_activity.empty:
+            st.warning("No hay actividad por tema disponible.")
+        else:
+            topic_activity = apply_date_window(snapshot.topic_activity, filters["date_window"])
+            if topic_activity.empty:
+                st.warning("No hay actividad de Wikipedia para el rango de fechas seleccionado.")
+                return
+
+            total_views = float(topic_activity["views"].sum())
+            total_revisions = float(topic_activity["revision_count"].sum())
+            active_topics = int(topic_activity["topic_label"].nunique())
+            latest_date = pd.to_datetime(topic_activity["date"]).max().strftime("%Y-%m-%d")
+            top_topic = (
+                topic_activity.groupby("topic_label")["views"]
+                .sum()
+                .sort_values(ascending=False)
+                .index[0]
+            )
+
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Vistas acumuladas", f"{total_views:,.0f}")
+            col2.metric("Revisiones editoriales", f"{total_revisions:,.0f}")
+            col3.metric("Temas activos", f"{active_topics}")
+            col4.metric("Tema dominante", top_topic)
+
+            left, right = st.columns([1.25, 0.95])
+            with left:
+                st.markdown(
+                    """
+                    <div class="surface-panel" style="padding: 1.2rem; margin: 1rem 0;">
+                        <div class="panel-title" style="font-size: 1.15rem;">Pulso diario de atención pública</div>
+                        <div class="panel-note">Evolución de lecturas por tema dentro de la ventana filtrada.</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                st.plotly_chart(plot_wikipedia_attention_timeline(topic_activity), use_container_width=True)
+
+            with right:
+                st.markdown(
+                    """
+                    <div class="surface-panel" style="padding: 1.2rem; margin: 1rem 0;">
+                        <div class="panel-title" style="font-size: 1.15rem;">Composición tema-edición</div>
+                        <div class="panel-note">Contrasta consumo público con actividad editorial.</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                st.plotly_chart(plot_wikipedia_topic_mix(topic_activity), use_container_width=True)
+
+            topic_slice = (
+                topic_activity.groupby(["topic_label", "region"], as_index=False)
+                .agg(
+                    views=("views", "sum"),
+                    revision_count=("revision_count", "sum"),
+                    active_days=("date", "nunique"),
+                    latest_observation=("date", "max"),
+                )
+                .sort_values("views", ascending=False)
+            )
+            topic_slice["share_views"] = topic_slice["views"] / max(total_views, 1) * 100
+            topic_slice["views_per_revision"] = topic_slice.apply(
+                lambda row: row["views"] / row["revision_count"] if row["revision_count"] else row["views"],
+                axis=1,
+            )
+            topic_slice["latest_observation"] = pd.to_datetime(topic_slice["latest_observation"]).dt.strftime("%Y-%m-%d")
+            topic_slice = topic_slice[
+                [
+                    "topic_label",
+                    "region",
+                    "views",
+                    "share_views",
+                    "revision_count",
+                    "views_per_revision",
+                    "active_days",
+                    "latest_observation",
+                ]
+            ].rename(
+                columns={
+                    "topic_label": "tema",
+                    "region": "region",
+                    "views": "vistas",
+                    "share_views": "% atencion",
+                    "revision_count": "revisiones",
+                    "views_per_revision": "vistas por revision",
+                    "active_days": "dias activos",
+                    "latest_observation": "ultima observacion",
+                }
+            )
+            st.markdown(
+                f"""
+                <div class="surface-panel" style="padding: 1.2rem; margin: 1rem 0;">
+                    <div class="panel-title" style="font-size: 1.15rem;">Matriz enriquecida de temas Wikipedia</div>
+                    <div class="panel-note">Última observación disponible: {latest_date}. El porcentaje indica qué parte de la atención del periodo concentra cada tema.</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.dataframe(
+                topic_slice.style.format(
+                    {
+                        "vistas": "{:,.0f}",
+                        "% atencion": "{:.1f}%",
+                        "revisiones": "{:,.0f}",
+                        "vistas por revision": "{:,.1f}",
+                    }
+                ),
+                use_container_width=True,
+                hide_index=True,
+                height=360,
+            )
+
+
+def render_method_tab(status_payload: dict | None):
+    last_run = status_payload.get('finished_at', 'N/D') if status_payload else 'N/D'
+    dataset_summary = status_payload.get("dataset_summary", {}) if status_payload else {}
+    date_min = dataset_summary.get("date_min", "N/D")
+    date_max = dataset_summary.get("date_max", "N/D")
+    rows = dataset_summary.get("rows", "N/D")
+    st.markdown(
+        f"""
+        <div class="surface-panel" style="padding: 2rem; margin-bottom: 1rem;">
+            <div class="hero-badge">Diseño metodológico · OSINT · clasificación diaria</div>
+            <div class="hero-title" style="font-size: 2.3rem; margin-top: 0.6rem;">Cómo funciona el sistema</div>
+            <div class="hero-copy" style="max-width: 980px;">
+                La plataforma integra señales abiertas para estimar si el próximo día puede entrar en un régimen de alta presión pública
+                y mediática sobre el conflicto Irán-Israel-EE. UU. El resultado debe leerse como una alerta analítica, no como confirmación
+                de eventos militares.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     st.markdown(
         f"""
-        <div class="hero-grid">
-            <div class="hero-panel">
-                <div class="hero-panel-body">
-                    <div class="hero-badge">Plataforma de inteligencia · Irán / Israel / EE. UU. / energía / escalada</div>
-                    <div class="hero-title">Sala de monitoreo y escalada geopolítica</div>
-                    <div class="hero-copy">
-                        Vista operativa en tiempo real de atención pública, presión de titulares, churn editorial, detección de anomalías
-                        y riesgo de escalada estimado por modelos. Centrado en el teatro de conflicto Irán‑Israel‑EE. UU.
+        <div class="surface-panel" style="padding: 1.6rem; margin-bottom: 1rem;">
+            <div style="display:grid; grid-template-columns: 1.1fr 1.4fr; gap: 22px; align-items:start;">
+                <div>
+                    <div class="panel-title" style="font-size: 1.25rem;">Resumen del diseño</div>
+                    <div class="panel-note" style="font-size: 1rem; line-height: 1.65;">
+                        El proyecto trabaja con una serie diaria. Integra atención pública, actividad editorial y titulares RSS para estimar
+                        días de alta presión mediática futura sobre el conflicto.
                     </div>
-                    <div class="hero-chip-grid">
-                        <div class="hero-chip">
-                            <div class="label">Probabilidad de escalada</div>
-                            <div class="value">{esc_prob}</div>
-                        </div>
-                        <div class="hero-chip">
-                            <div class="label">Pico pronosticado</div>
-                            <div class="value">{forecast_peak_str}</div>
-                        </div>
-                        <div class="hero-chip">
-                            <div class="label">Señal militar</div>
-                            <div class="value">{military_signal}</div>
-                        </div>
-                        <div class="hero-chip">
-                            <div class="label">Señal energética</div>
-                            <div class="value">{energy_signal}</div>
-                        </div>
-                        <div class="hero-chip">
-                            <div class="label">Conteo temas de riesgo</div>
-                            <div class="value">{risk_signal}</div>
-                        </div>
-                        <div class="hero-chip">
-                            <div class="label">Fecha pico pronosticada</div>
-                            <div class="value">{forecast_peak_date}</div>
-                        </div>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;">
+                    <div style="border-left: 2px solid #55d6ff; padding-left: 12px;">
+                        <div class="method-step">Cobertura</div>
+                        <div class="panel-title" style="font-size: 1.15rem;">{date_min} / {date_max}</div>
+                    </div>
+                    <div style="border-left: 2px solid #49dcb1; padding-left: 12px;">
+                        <div class="method-step">Unidad</div>
+                        <div class="panel-title" style="font-size: 1.15rem;">Día calendario</div>
+                    </div>
+                    <div style="border-left: 2px solid #ffb347; padding-left: 12px;">
+                        <div class="method-step">Volumen</div>
+                        <div class="panel-title" style="font-size: 1.15rem;">{rows} registros</div>
                     </div>
                 </div>
             </div>
-            <div class="hero-panel">
-                <div class="hero-panel-body">
-                    <div class="panel-title">Mapa del teatro de conflicto</div>
-                    <div class="panel-note">
-                        Capa operativa regional basada en menciones regionales observadas en RSS y temas monitorizados en Wikipedia.
+        </div>
+
+        <div class="surface-panel" style="padding: 1.6rem; margin-bottom: 1rem;">
+            <div class="panel-title" style="font-size: 1.25rem; margin-bottom: 1rem;">Flujo metodológico</div>
+            <div style="display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;">
+                <div>
+                    <div class="method-step">01 · Fuentes</div>
+                    <div class="panel-note" style="font-size: 1rem; line-height: 1.6;">
+                        Wikimedia Pageviews, Wikipedia Revisions y RSS de Google News, BBC y Al Jazeera.
                     </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.plotly_chart(
-        plot_conflict_map(filtered_region_snapshot),
-        use_container_width=True,
-        config={"scrollZoom": False, "modeBarButtonsToRemove": ["zoom2d", "zoomIn2d", "zoomOut2d", "resetScale2d", "pan2d"]},
-    )
-    st.markdown('<div class="panel-note">Mapa geográfico de atención regional: tamaño y color indican intensidad de riesgo estimada; pase el cursor para ver métricas recientes y titulares.</div>', unsafe_allow_html=True)
-    st.markdown(
-        """
+                </div>
+                <div>
+                    <div class="method-step">02 · Señales</div>
+                    <div class="panel-note" style="font-size: 1rem; line-height: 1.6;">
+                        Rezagos, promedios móviles, conteos de titulares, visitas, revisiones y calendario.
+                    </div>
+                </div>
+                <div>
+                    <div class="method-step">03 · Modelo</div>
+                    <div class="panel-note" style="font-size: 1rem; line-height: 1.6;">
+                        Clasificación de alta presión mediática del día siguiente con comparación de modelos supervisados.
+                    </div>
                 </div>
             </div>
-            <div class="hero-panel">
-                <div class="hero-panel-body">
-                    <div class="panel-title">Panel de Alertas Operativas</div>
-                    <div class="panel-note">
-                        Resumen operativo: perspectiva de escalada, banderas de anomalía, hotspots regionales y estrés en corredores energéticos.
+        </div>
+
+        <div class="surface-panel" style="padding: 1.6rem;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 22px;">
+                <div>
+                    <div class="panel-title" style="font-size: 1.18rem;">Lectura correcta</div>
+                    <div class="panel-note" style="font-size: 1rem; line-height: 1.65;">
+                        Una subida del riesgo indica aumento de presión pública y mediática estimada. No confirma ataques, bajas ni decisiones
+                        operativas. Debe contrastarse con fuentes primarias.
                     </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.markdown(radar_html, unsafe_allow_html=True)
-    st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="alert-stack">{alerts_html}</div>', unsafe_allow_html=True)
-    st.markdown(
-        """
+                </div>
+                <div>
+                    <div class="panel-title" style="font-size: 1.18rem;">Trazabilidad</div>
+                    <div class="panel-note" style="font-size: 1rem; line-height: 1.65;">
+                        Datos crudos, dataset diario procesado y métricas del modelo quedan almacenados en el repositorio. Última ejecución:
+                        <strong>{last_run}</strong>.
+                    </div>
                 </div>
             </div>
         </div>
@@ -1299,260 +1851,56 @@ def render_hero(snapshot, filters: dict):
     )
 
 
-def render_exec_metrics(snapshot):
-    execu = snapshot.executive
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
-    col1.metric("Nivel de amenaza", execu["threat_level"])
-    col2.metric("Proxy de riesgo global", f"{execu['global_risk_proxy']:.1f}")
-    col3.metric("Tendencia semanal", f"{execu['weekly_trend']:+.1f}")
-    col4.metric("Tendencia mensual", f"{execu['monthly_trend']:+.1f}")
-    col5.metric("Confianza del modelo", f"{execu['model_confidence']:.1%}")
-    col6.metric("Score de anomalía", f"{execu['anomaly_score']:.3f}")
-
-
-def render_overview_tab(dataset_df: pd.DataFrame, snapshot, filters: dict):
-    filtered_dataset = apply_date_window(dataset_df, filters["date_window"])
-    filtered_theme_daily = apply_date_window(snapshot.theme_daily, filters["date_window"])
-    filtered_regime_frame = apply_date_window(snapshot.regime_frame, filters["date_window"])
-    filtered_region_snapshot = snapshot.region_snapshot[
-        snapshot.region_snapshot["region"].isin(filters["regions"])
-    ] if filters["regions"] else snapshot.region_snapshot
-
-    left, right = st.columns([1.25, 1])
-    with left:
-        st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Presión de escalada observada y forecast a corto plazo</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="panel-note">Puntaje observado, marcas de anomalía y forecast autoregresivo a 10 días con banda de confianza construida a partir de residuos históricos.</div>',
-            unsafe_allow_html=True,
-        )
-        st.plotly_chart(plot_pressure_and_forecast(filtered_dataset, snapshot), use_container_width=True)
-        st.markdown('<div class="panel-note">Score observado de presión mediática con marcadores de anomalía y forecast a 10 días (bandas de confianza). El forecast usa un modelo autoregresivo entrenado sobre el historial del `media_pressure_score`.</div>', unsafe_allow_html=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-    with right:
-        st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Distribución regional de riesgo</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="panel-note">Ranking de hotspots por menciones regionales en titulares, atención por tema y actividad editorial reciente.</div>',
-            unsafe_allow_html=True,
-        )
-        st.plotly_chart(plot_region_risk_bars(filtered_region_snapshot), use_container_width=True)
-        st.markdown('<div class="panel-note">Ranking regional por menciones y señales editoriales; útil para identificar hotspots mediáticos en el periodo seleccionado.</div>', unsafe_allow_html=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-    left, right = st.columns([1, 1])
-    with left:
-        st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Monitor de actividad por tema</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="panel-note">Capas de actividad derivadas de palabras clave para military, energy, diplomacy y risk en el corpus RSS.</div>',
-            unsafe_allow_html=True,
-        )
-        st.plotly_chart(plot_theme_activity(filtered_theme_daily, filters["themes"]), use_container_width=True)
-        st.markdown('<div class="panel-note">Actividad por tema (military, energy, diplomacy, risk) derivada de conteos de keywords en el corpus RSS. No es una medida perfecta de intención militar.</div>', unsafe_allow_html=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-    with right:
-        st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Cronología de cambios de régimen</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="panel-note">Clustering no supervisado sobre estados de señales históricas para detectar cambios y patrones en la postura del conflicto.</div>',
-            unsafe_allow_html=True,
-        )
-        st.plotly_chart(plot_regime_timeline(filtered_regime_frame), use_container_width=True)
-        st.markdown('<div class="panel-note">Línea temporal de regímenes detectados por clustering no supervisado. Cada régimen resume el perfil dominante de señales (views, revisions, rss, score).</div>', unsafe_allow_html=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-
-def render_model_tab(snapshot):
-    st.markdown('<div class="section-grid">', unsafe_allow_html=True)
-    left, right = st.columns([1.1, 0.9])
-
-    with left:
-        st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Desempeño de modelos</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="panel-note">Comparación de desempeño entre clasificadores candidatos usando el dataset integrado y holdout temporal.</div>',
-            unsafe_allow_html=True,
-        )
-        if snapshot.model_metrics.empty:
-            st.warning("No model metrics available.")
-        else:
-            st.plotly_chart(plot_model_comparison(snapshot.model_metrics), use_container_width=True)
-            st.markdown('<div class="panel-note">Comparación de desempeño entre modelos candidatos usando la métrica seleccionada (f1 en este proyecto). Revisa `models/model_metrics.json` para detalles.</div>', unsafe_allow_html=True)
-            display_df = snapshot.model_metrics.copy()
-            for column in ["accuracy", "precision", "recall", "f1", "roc_auc"]:
-                if column in display_df.columns:
-                    display_df[column] = display_df[column].map(
-                        lambda value: f"{value:.3f}" if pd.notna(value) else "N/D"
-                    )
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-    with right:
-        st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Importancia de características</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="panel-note">Ranking de contribuciones (modelos tipo árbol) desde el clasificador de escalada en producción.</div>',
-            unsafe_allow_html=True,
-        )
-        if snapshot.feature_importance_frame.empty:
-            st.warning("No feature importance available.")
-        else:
-            st.plotly_chart(plot_feature_importance(snapshot.feature_importance_frame), use_container_width=True)
-            st.markdown('<div class="panel-note">Importancia de características derivada del mejor modelo; útil para entender qué señales impulsan la predicción.</div>', unsafe_allow_html=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown('<div class="section-grid">', unsafe_allow_html=True)
-    left, right = st.columns([1.1, 0.9])
-
-    with left:
-        st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        if snapshot.shap_frame.empty:
-            st.markdown('<div class="panel-title">Panel de impulsores del modelo</div>', unsafe_allow_html=True)
-            st.markdown(
-                '<div class="panel-note">Última predicción interpretada usando la importancia de características del modelo en producción.</div>',
-                unsafe_allow_html=True,
-            )
-            st.plotly_chart(plot_feature_importance(snapshot.feature_importance_frame), use_container_width=True)
-            st.markdown('<div class="panel-note">Importancia de características derivada del mejor modelo; útil para entender qué señales impulsan la predicción.</div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="panel-title">Panel SHAP</div>', unsafe_allow_html=True)
-            st.markdown(
-                '<div class="panel-note">Última predicción explicada mediante contribuciones SHAP para evitar que la plataforma sea una caja negra.</div>',
-                unsafe_allow_html=True,
-            )
-            st.plotly_chart(plot_shap_contributions(snapshot.shap_frame), use_container_width=True)
-            st.markdown('<div class="panel-note">Contribuciones SHAP por fecha/instancia. Interpreta con cuidado: SHAP aproxima la importancia local del modelo, no causa.</div>', unsafe_allow_html=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-    with right:
-        st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Impulsores de la última predicción</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="panel-note">Lectura operativa de las variables que más aumentaron o disminuyeron la estimación actual de escalada.</div>',
-            unsafe_allow_html=True,
-        )
-        if snapshot.top_drivers:
-            st.dataframe(pd.DataFrame(snapshot.top_drivers), use_container_width=True, hide_index=True)
-        else:
-            st.dataframe(pd.DataFrame(columns=["feature", "value", "effect"]), use_container_width=True, hide_index=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def render_event_tab(snapshot, filters: dict):
-    filtered_events = apply_date_window(snapshot.recent_events, filters["date_window"])
-    if filters["sources"] and "source" in filtered_events.columns:
-        filtered_events = filtered_events[filtered_events["source"].isin(filters["sources"])]
-
-    left, right = st.columns([1.15, 0.85])
-    with left:
-        st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Flujo de eventos recientes</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="panel-note">Últimos titulares relevantes al conflicto extraídos del layer RSS disponible. Este es el flujo textual real hoy disponible.</div>',
-            unsafe_allow_html=True,
-        )
-        if filtered_events.empty:
-            st.warning("No event stream available.")
-        else:
-            display_df = filtered_events[["date", "source", "title_clean", "link"]].copy().head(20)
-            display_df["date"] = display_df["date"].dt.strftime("%Y-%m-%d")
-            display_df.columns = ["date", "source", "headline", "link"]
-            st.dataframe(display_df, use_container_width=True, hide_index=True, height=520)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-    with right:
-        st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">Matriz de atención por tema</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="panel-note">Temas monitorizados en Wikipedia y su huella reciente en atención pública y actividad editorial.</div>',
-            unsafe_allow_html=True,
-        )
-        if snapshot.topic_activity.empty:
-            st.warning("No hay actividad por tema disponible.")
-        else:
-            topic_slice = snapshot.topic_activity.copy()
-            topic_slice = (
-                topic_slice.groupby("topic_label", as_index=False)[["views", "revision_count"]]
-                .sum()
-                .sort_values("views", ascending=False)
-            )
-            st.dataframe(topic_slice, use_container_width=True, hide_index=True, height=520)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-
-def render_method_tab(status_payload: dict | None):
-    st.markdown('<div class="surface-panel"><div class="surface-body">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">Límites metodológicos y realidad de datos</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="panel-note">Todo lo mostrado está acotado a lo que el proyecto contiene actualmente. No se introdujeron eventos sintéticos ni datos económicos inventados.</div>',
-        unsafe_allow_html=True,
-    )
-    st.write(
-        "Esta plataforma predice estados de alta presión mediática y atención pública, no bajas verificadas de víctimas ni órdenes operativas confirmadas."
-    )
-    st.write(
-        "El mapa regional se alimenta de menciones regionales en el corpus RSS y de temas monitorizados en Wikipedia. Es una capa de atención geográfica observada, no una base de eventos geoespaciales sintética."
-    )
-    st.write(
-        "Las vistas sobre energía y petróleo están limitadas a señales textuales en el RSS, ya que el proyecto no contiene series temporales de mercado (Brent, WTI, índices de envío o datos financieros)."
-    )
-    st.write(
-        "El forecast se construye solo a partir del historial del `media_pressure_score` usando patrones autoregresivos. Es un forecast a corto plazo, no una simulación geopolítica completa."
-    )
-    if status_payload:
-        st.write(f"Última ejecución del pipeline registrada en el proyecto: `{status_payload.get('finished_at', 'N/D')}`.")
-    st.markdown("</div></div>", unsafe_allow_html=True)
-
-
 inject_styles()
 
 try:
     dataset_df = load_dataset()
 except Exception as exc:
-    st.error(str(exc))
+    st.error(f"Error cargando dataset: {exc}")
     st.stop()
 
+
+# Componentes de datos
 metrics_payload = load_metrics()
 status_payload = load_pipeline_status()
 rss_df = load_raw_csv(RSS_PATH, parse_dates=["date"])
 wikimedia_raw_df = load_raw_csv(WIKI_RAW_PATH, parse_dates=["date"])
 revisions_raw_df = load_raw_csv(REVISION_RAW_PATH, parse_dates=["date"])
 snapshot = build_snapshot(dataset_df, rss_df, wikimedia_raw_df, revisions_raw_df, metrics_payload)
-filters = render_dashboard_filters(dataset_df, rss_df, snapshot)
 
-render_sidebar(status_payload, snapshot)
+# SIDEBAR CONFIGURATION
+with st.sidebar:
+    menu_options = {
+        "Centro de Mandos": "Home",
+        "Teatro de Conflicto": "Map",
+        "Inteligencia ML": "Models",
+        "Monitor de Fuentes": "Events",
+        "Metodología": "Method",
+    }
+    st.caption("Módulos del sistema")
+    selection = st.radio("Módulos del Sistema", list(menu_options.keys()), label_visibility="collapsed")
+    page = menu_options[selection]
+    
+    filters = render_dashboard_filters(dataset_df, rss_df, snapshot)
+    
+    st.caption(f"Actualizado en sesión: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
+
+# MAIN CONTENT AREA
 st.markdown('<div class="war-shell">', unsafe_allow_html=True)
-render_command_ribbon(snapshot, status_payload)
-render_hero(snapshot, filters)
-render_exec_metrics(snapshot)
+render_hero(snapshot, filters, page)
 
-tab_overview, tab_models, tab_events, tab_method = st.tabs(
-    [
-        "Resumen Operativo",
-        "Modelo y Explicabilidad",
-        "Flujo de Eventos y Fuentes",
-        "Metodología",
-    ]
-)
-
-with tab_overview:
+# Routing Logic
+if page == "Home":
+    render_exec_metrics(snapshot)
     render_overview_tab(dataset_df, snapshot, filters)
-
-with tab_models:
+elif page == "Map":
+    render_map_page(snapshot, filters)
+elif page == "Models":
     render_model_tab(snapshot)
-
-with tab_events:
+elif page == "Events":
     render_event_tab(snapshot, filters)
-
-with tab_method:
+elif page == "Method":
     render_method_tab(status_payload)
 
 st.markdown("</div>", unsafe_allow_html=True)

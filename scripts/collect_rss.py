@@ -28,6 +28,12 @@ KEYWORDS = [
     "middle east",
     "strike",
     "missile",
+    "red sea",
+    "houthi",
+    "yemen",
+    "hormuz",
+    "iraq",
+    "syria",
 ]
 
 

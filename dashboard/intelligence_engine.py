@@ -25,15 +25,15 @@ except ImportError:
 
 
 REGION_META = {
-    "Iran": {"lat": 32.0, "lon": 53.0, "keywords": ["iran", "tehran", "irgc", "bandar abbas", "persian"]},
+    "Irán": {"lat": 32.0, "lon": 53.0, "keywords": ["iran", "tehran", "irgc", "bandar abbas", "persian"]},
     "Israel": {"lat": 31.2, "lon": 34.8, "keywords": ["israel", "tel aviv", "idf", "jerusalem"]},
-    "Gaza": {"lat": 31.4, "lon": 34.3, "keywords": ["gaza", "hamas"]},
-    "Lebanon": {"lat": 33.8, "lon": 35.8, "keywords": ["lebanon", "hezbollah", "beirut"]},
-    "Syria": {"lat": 35.0, "lon": 38.5, "keywords": ["syria", "damascus"]},
-    "Iraq": {"lat": 33.0, "lon": 44.0, "keywords": ["iraq", "baghdad"]},
+    "Franja de Gaza": {"lat": 31.4, "lon": 34.3, "keywords": ["gaza", "hamas"]},
+    "Líbano": {"lat": 33.8, "lon": 35.8, "keywords": ["lebanon", "hezbollah", "beirut"]},
+    "Siria": {"lat": 35.0, "lon": 38.5, "keywords": ["syria", "damascus"]},
+    "Irak": {"lat": 33.0, "lon": 44.0, "keywords": ["iraq", "baghdad"]},
     "Kuwait": {"lat": 29.3, "lon": 47.5, "keywords": ["kuwait"]},
-    "Hormuz": {"lat": 26.6, "lon": 56.25, "keywords": ["hormuz", "strait of hormuz", "gulf"]},
-    "Red Sea": {"lat": 20.5, "lon": 38.2, "keywords": ["red sea", "houthi", "shipping", "tanker"]},
+    "Estrecho de Ormuz": {"lat": 26.6, "lon": 56.25, "keywords": ["hormuz", "strait of hormuz", "gulf"]},
+    "Mar Rojo": {"lat": 20.5, "lon": 38.2, "keywords": ["red sea", "houthi", "shipping", "tanker", "yemen"]},
 }
 
 
